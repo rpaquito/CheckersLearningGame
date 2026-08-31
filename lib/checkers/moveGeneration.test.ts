@@ -88,11 +88,13 @@ describe('captureMovesFrom', () => {
     ]);
   });
 
-  it('a king can chain captures backward and forward', () => {
+  it('a king can chain captures through both backward and forward directions', () => {
     const board = emptyBoard();
-    board[10] = { color: 'b', kind: 'king' }; // 11
-    board[14] = { color: 'w', kind: 'man' }; // 15
-    const moves = captureMovesFrom(board, 11);
-    expect(moves).toEqual([{ from: 11, to: 18, captures: [15], promotes: false }]);
+    board[17] = { color: 'b', kind: 'king' }; // 18
+    board[14] = { color: 'w', kind: 'man' }; // 15 -- captured going "backward" (north) for black
+    board[6] = { color: 'w', kind: 'man' }; // 7 -- captured continuing backward from the landing square
+    expect(captureMovesFrom(board, 18)).toEqual([
+      { from: 18, to: 2, captures: [15, 7], promotes: false },
+    ]);
   });
 });
