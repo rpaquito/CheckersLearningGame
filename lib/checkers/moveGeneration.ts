@@ -118,3 +118,13 @@ export function allLegalMoves(board: Board, turn: Color): CheckersMove[] {
   }
   return moves;
 }
+
+export function applyMove(board: Board, move: CheckersMove): Board {
+  const piece = board[move.from - 1];
+  if (!piece) throw new Error(`applyMove: no piece at square ${move.from}`);
+  const next = board.slice() as (Piece | null)[];
+  next[move.from - 1] = null;
+  for (const captured of move.captures) next[captured - 1] = null;
+  next[move.to - 1] = move.promotes ? { color: piece.color, kind: 'king' } : piece;
+  return next;
+}

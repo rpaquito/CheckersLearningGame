@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialBoard } from './board';
-import { simpleMovesFrom, captureMovesFrom, hasAnyCapture, legalMovesFrom, allLegalMoves } from './moveGeneration';
+import { simpleMovesFrom, captureMovesFrom, hasAnyCapture, legalMovesFrom, allLegalMoves, applyMove } from './moveGeneration';
 import type { Piece } from './types';
 
 export function emptyBoard(): (Piece | null)[] {
@@ -134,5 +134,40 @@ describe('mandatory capture', () => {
   it('allLegalMoves at the start of the game returns exactly the 7 standard opening moves for black', () => {
     const board = createInitialBoard();
     expect(allLegalMoves(board, 'b').length).toBe(7);
+  });
+});
+
+describe('applyMove', () => {
+  it('moves the piece and removes captured pieces', () => {
+    const board = emptyBoard();
+    board[10] = { color: 'b', kind: 'man' }; // 11
+    board[14] = { color: 'w', kind: 'man' }; // 15
+    const next = applyMove(board, { from: 11, to: 18, captures: [15], promotes: false });
+    expect(next[10]).toBeNull();
+    expect(next[14]).toBeNull();
+    expect(next[17]).toEqual({ color: 'b', kind: 'man' });
+  });
+
+  it('promotes the piece to a king when the move says so', () => {
+    const board = emptyBoard();
+    board[21] = { color: 'b', kind: 'man' }; // 22
+    board[25] = { color: 'w', kind: 'man' }; // 26
+    const next = applyMove(board, { from: 22, to: 31, captures: [26], promotes: true });
+    expect(next[30]).toEqual({ color: 'b', kind: 'king' });
+    expect(next[21]).toBeNull();
+    expect(next[25]).toBeNull();
+  });
+
+  it('does not mutate the input board', () => {
+    const board = emptyBoard();
+    board[10] = { color: 'b', kind: 'man' }; // 11
+    const before = board.slice();
+    applyMove(board, { from: 11, to: 15, captures: [], promotes: false });
+    expect(board).toEqual(before);
+  });
+
+  it('throws if there is no piece at the from square', () => {
+    const board = emptyBoard();
+    expect(() => applyMove(board, { from: 1, to: 5, captures: [], promotes: false })).toThrow();
   });
 });
