@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createInitialBoard } from './board';
-import { simpleMovesFrom, captureMovesFrom } from './moveGeneration';
+import { simpleMovesFrom, captureMovesFrom, hasAnyCapture, legalMovesFrom, allLegalMoves } from './moveGeneration';
 import type { Piece } from './types';
 
 export function emptyBoard(): (Piece | null)[] {
@@ -96,5 +96,43 @@ describe('captureMovesFrom', () => {
     expect(captureMovesFrom(board, 18)).toEqual([
       { from: 18, to: 2, captures: [15, 7], promotes: false },
     ]);
+  });
+});
+
+describe('mandatory capture', () => {
+  it('hasAnyCapture is true only for the color that actually has one', () => {
+    const board = emptyBoard();
+    board[10] = { color: 'b', kind: 'man' }; // 11
+    board[14] = { color: 'w', kind: 'man' }; // 15 -- diagonally adjacent to 11, so without a
+    // blocker white could ALSO capture black here (15 --'ne'--> 11, landing 8) -- checkers
+    // captures are symmetric by geometry, not one-directional. Block white's landing square
+    // so this scenario actually isolates "only black has a capture," which is the property
+    // under test.
+    board[7] = { color: 'w', kind: 'man' }; // 8 -- blocks white's own capture landing square
+    expect(hasAnyCapture(board, 'b')).toBe(true);
+    expect(hasAnyCapture(board, 'w')).toBe(false);
+  });
+
+  it('legalMovesFrom only offers captures when a capture is mandatory anywhere for that color', () => {
+    const board = emptyBoard();
+    board[10] = { color: 'b', kind: 'man' }; // 11, has a capture
+    board[14] = { color: 'w', kind: 'man' }; // 15
+    board[8] = { color: 'b', kind: 'man' }; // 9, would have simple moves otherwise
+    expect(legalMovesFrom(board, 'b', 9)).toEqual([]); // must sit out
+    expect(legalMovesFrom(board, 'b', 11).map((m) => m.to)).toEqual([18]);
+  });
+
+  it('legalMovesFrom returns simple moves when no capture is mandatory', () => {
+    const board = createInitialBoard();
+    const moves = legalMovesFrom(board, 'b', 11);
+    // Square 11 has two open forward targets at the start of the game (15 and
+    // 16, same as simpleMovesFrom's own test) -- see moveGeneration.test.ts's
+    // simpleMovesFrom test for the geometry.
+    expect(moves.map((m) => m.to).sort((a, b) => a - b)).toEqual([15, 16]);
+  });
+
+  it('allLegalMoves at the start of the game returns exactly the 7 standard opening moves for black', () => {
+    const board = createInitialBoard();
+    expect(allLegalMoves(board, 'b').length).toBe(7);
   });
 });

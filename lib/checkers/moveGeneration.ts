@@ -94,3 +94,27 @@ export function captureMovesFrom(board: Board, square: Square): CheckersMove[] {
     promotes: r.promotes,
   }));
 }
+
+export function hasAnyCapture(board: Board, turn: Color): boolean {
+  for (let s = 1; s <= 32; s++) {
+    const piece = board[s - 1];
+    if (piece && piece.color === turn && captureMovesFrom(board, s).length > 0) return true;
+  }
+  return false;
+}
+
+export function legalMovesFrom(board: Board, turn: Color, square: Square): CheckersMove[] {
+  const piece = board[square - 1];
+  if (!piece || piece.color !== turn) return [];
+  if (hasAnyCapture(board, turn)) return captureMovesFrom(board, square);
+  return simpleMovesFrom(board, square);
+}
+
+export function allLegalMoves(board: Board, turn: Color): CheckersMove[] {
+  const moves: CheckersMove[] = [];
+  for (let s = 1; s <= 32; s++) {
+    const piece = board[s - 1];
+    if (piece && piece.color === turn) moves.push(...legalMovesFrom(board, turn, s));
+  }
+  return moves;
+}
