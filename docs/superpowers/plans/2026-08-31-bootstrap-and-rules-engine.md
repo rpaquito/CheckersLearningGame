@@ -641,11 +641,11 @@ export function emptyBoard(): (Piece | null)[] {
 }
 
 describe('simpleMovesFrom', () => {
-  it('a black man on square 11 can move to 15 at the start of the game', () => {
+  it('a black man on square 11 has two forward targets at the start of the game (15 and 16 are both empty)', () => {
     const board = createInitialBoard();
-    expect(simpleMovesFrom(board, 11)).toEqual([
-      { from: 11, to: 15, captures: [], promotes: false },
-    ]);
+    const moves = simpleMovesFrom(board, 11);
+    expect(moves.map((m) => m.to).sort((a, b) => a - b)).toEqual([15, 16]);
+    expect(moves.every((m) => m.captures.length === 0 && !m.promotes)).toBe(true);
   });
 
   it('a black man on the edge (square 12) has only one forward target', () => {
@@ -794,12 +794,14 @@ describe('captureMovesFrom', () => {
     ]);
   });
 
-  it('a king can chain captures backward and forward', () => {
+  it('a king can chain captures through both backward and forward directions', () => {
     const board = emptyBoard();
-    board[10] = { color: 'b', kind: 'king' }; // 11
-    board[14] = { color: 'w', kind: 'man' }; // 15
-    const moves = captureMovesFrom(board, 11);
-    expect(moves).toEqual([{ from: 11, to: 18, captures: [15], promotes: false }]);
+    board[17] = { color: 'b', kind: 'king' }; // 18
+    board[14] = { color: 'w', kind: 'man' }; // 15 -- captured going "backward" (north) for black
+    board[6] = { color: 'w', kind: 'man' }; // 7 -- captured continuing backward from the landing square
+    expect(captureMovesFrom(board, 18)).toEqual([
+      { from: 18, to: 2, captures: [15, 7], promotes: false },
+    ]);
   });
 });
 ```
@@ -935,7 +937,12 @@ describe('mandatory capture', () => {
   it('hasAnyCapture is true only for the color that actually has one', () => {
     const board = emptyBoard();
     board[10] = { color: 'b', kind: 'man' }; // 11
-    board[14] = { color: 'w', kind: 'man' }; // 15
+    board[14] = { color: 'w', kind: 'man' }; // 15 -- diagonally adjacent to 11, so without a
+    // blocker white could ALSO capture black here (15 --'ne'--> 11, landing 8) -- checkers
+    // captures are symmetric by geometry, not one-directional. Block white's landing square
+    // so this scenario actually isolates "only black has a capture," which is the property
+    // under test.
+    board[7] = { color: 'w', kind: 'man' }; // 8 -- blocks white's own capture landing square
     expect(hasAnyCapture(board, 'b')).toBe(true);
     expect(hasAnyCapture(board, 'w')).toBe(false);
   });
@@ -951,9 +958,11 @@ describe('mandatory capture', () => {
 
   it('legalMovesFrom returns simple moves when no capture is mandatory', () => {
     const board = createInitialBoard();
-    expect(legalMovesFrom(board, 'b', 11)).toEqual([
-      { from: 11, to: 15, captures: [], promotes: false },
-    ]);
+    const moves = legalMovesFrom(board, 'b', 11);
+    // Square 11 has two open forward targets at the start of the game (15 and
+    // 16, same as simpleMovesFrom's own test) -- see moveGeneration.test.ts's
+    // simpleMovesFrom test for the geometry.
+    expect(moves.map((m) => m.to).sort((a, b) => a - b)).toEqual([15, 16]);
   });
 
   it('allLegalMoves at the start of the game returns exactly the 7 standard opening moves for black', () => {
@@ -1291,10 +1300,14 @@ describe('useCheckersGame', () => {
       result.current.makeMove(11, 15);
     });
     act(() => {
-      result.current.makeMove(23, 19); // white's standard reply, no capture involved
+      // NOT 23-19 -- that's the real checkers "exchange" line: 15 and 19 end
+      // up diagonally adjacent with an open landing square, which would
+      // hand black a mandatory capture and defeat the point of this test.
+      // 24-20 is a genuinely quiet reply, nowhere near black's man at 15.
+      result.current.makeMove(24, 20);
     });
     // Black to move again with no forced capture -- square 9 has its normal simple moves.
-    expect(result.current.legalMovesFrom(9).sort()).toEqual([13, 14]);
+    expect(result.current.legalMovesFrom(9).sort((a, b) => a - b)).toEqual([13, 14]);
   });
 
   it('reset returns to the initial position', () => {
