@@ -8,9 +8,15 @@ import { CheckersBoard } from '@/components/CheckersBoard/CheckersBoard';
 import { GameEndModal } from '@/components/GameEndModal/GameEndModal';
 import { ConfirmModal } from '@/components/ConfirmModal/ConfirmModal';
 import { createCheckersEngineClient, type CheckersEngineClient } from '@/lib/checkers/checkersEngineClient';
-import { difficultyToEngineOptions, type Difficulty } from '@/lib/checkers/difficulty';
+import { difficultyToEngineOptions, SUGGESTION_ENGINE_OPTIONS, type Difficulty } from '@/lib/checkers/difficulty';
 import { resolvePlayerColor, type PlayerColor } from '@/lib/checkers/playerColor';
-import type { Color, Square } from '@/lib/checkers/types';
+import { applyMove } from '@/lib/checkers/moveGeneration';
+import { useLearningModePreference } from '@/lib/checkers/useLearningModePreference';
+import { gradeMove } from '@/lib/checkers/gradeMove';
+import { explainMove, describeMoveForToast } from '@/lib/checkers/moveExplanation';
+import { LearningPanel } from '@/components/LearningPanel/LearningPanel';
+import { useToast } from '@/components/Toast/ToastProvider';
+import type { Board, CheckersMove, Color, Square } from '@/lib/checkers/types';
 
 function isDifficulty(value: string | null): value is Difficulty {
   return value === 'facil' || value === 'medio' || value === 'dificil';
@@ -37,6 +43,14 @@ function JogarPageInner() {
   const [gameEndOpen, setGameEndOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
 
+  const { show } = useToast();
+  const [learningModeEnabled, toggleLearningMode] = useLearningModePreference();
+  const [suggestedMove, setSuggestedMove] = useState<CheckersMove | null>(null);
+  const [suggestionExplanation, setSuggestionExplanation] = useState<string | null>(null);
+  const [suggestionLoading, setSuggestionLoading] = useState(false);
+  const learningEngineRef = useRef<CheckersEngineClient | null>(null);
+  const pendingGradeRef = useRef<{ boardBeforeMove: Board; moverColor: Color } | null>(null);
+
   const [humanColor] = useState<Color>(() => resolvePlayerColor(colorChoice));
   const aiColor: Color = humanColor === 'b' ? 'w' : 'b';
 
@@ -50,6 +64,26 @@ function JogarPageInner() {
       engineRef.current = null;
     };
   }, [isAiMode]);
+
+  // Vs-computer mode reuses `engineRef` (see getLearningEngine below) --
+  // this effect only ever creates a SEPARATE engine for local two-player
+  // games, and only while Learning Mode is on. Deliberately independent of
+  // isAiMode/engineRef's lifecycle: toggling Learning Mode on/off in a
+  // vs-computer game must never recreate/terminate the opponent's engine
+  // mid-think.
+  useEffect(() => {
+    if (isAiMode || !learningModeEnabled) return;
+    const client = createCheckersEngineClient();
+    learningEngineRef.current = client;
+    return () => {
+      client.terminate();
+      learningEngineRef.current = null;
+    };
+  }, [isAiMode, learningModeEnabled]);
+
+  function getLearningEngine(): CheckersEngineClient | null {
+    return isAiMode ? engineRef.current : learningEngineRef.current;
+  }
 
   const isAiTurn = isAiMode && state.turn === aiColor && !state.isGameOver;
   useEffect(() => {
@@ -89,6 +123,63 @@ function JogarPageInner() {
     if (state.isGameOver) setGameEndOpen(true);
   }, [state.isGameOver]);
 
+  // A suggestion refers to a specific board position -- once any move is
+  // made (by either side), that suggestion no longer applies to the
+  // current position and must not linger on the board or in the panel.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSuggestedMove(null);
+    setSuggestionExplanation(null);
+  }, [state.lastMove]);
+
+  // Runs once per move (state.lastMove changes to a new object every move).
+  // Only fires for moves handleSquareClick captured a pending grade for --
+  // the AI's own moves (made by the isAiTurn effect above, never through
+  // handleSquareClick) never populate pendingGradeRef, so they're never
+  // graded, satisfying "grade every human-made move, never the engine's".
+  useEffect(() => {
+    const pending = pendingGradeRef.current;
+    pendingGradeRef.current = null;
+    if (!pending) return;
+    // Learning Mode may have been toggled off between the click and this
+    // effect running -- don't surface a toast for a grading the player no
+    // longer asked for.
+    if (!learningModeEnabled) return;
+    const engine = getLearningEngine();
+    if (!engine) return;
+    const move = state.lastMove;
+    if (!move) return;
+    const boardAfterMove = state.board;
+    const opponentColor: Color = pending.moverColor === 'b' ? 'w' : 'b';
+
+    let cancelled = false;
+    gradeMove(engine, pending.boardBeforeMove, pending.moverColor, boardAfterMove, opponentColor)
+      .then(({ quality, loss }) => {
+        if (cancelled) return;
+        const message = describeMoveForToast({
+          quality,
+          loss,
+          move,
+          boardBeforeMove: pending.boardBeforeMove,
+          boardAfterMove,
+          moverColor: pending.moverColor,
+          locale: 'pt',
+        });
+        show(message, quality);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        // Quiet failure by design: grading is a nice-to-have overlay, not
+        // core gameplay -- unlike the AI-move-request failure above, this
+        // must never surface as a blocking error or disrupt play.
+        console.error('[jogar] move grading failed:', error);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.lastMove]);
+
   const legalTargets = selected !== null ? legalMovesFrom(selected) : [];
 
   function handleSquareClick(square: Square) {
@@ -96,6 +187,9 @@ function JogarPageInner() {
     if (isAiMode && state.turn === aiColor) return;
 
     if (selected !== null && legalTargets.includes(square)) {
+      if (learningModeEnabled) {
+        pendingGradeRef.current = { boardBeforeMove: state.board, moverColor: state.turn };
+      }
       makeMove(selected, square);
       setSelected(null);
       return;
@@ -107,6 +201,34 @@ function JogarPageInner() {
     } else {
       setSelected(null);
     }
+  }
+
+  function handleRequestSuggestion() {
+    const engine = getLearningEngine();
+    if (!engine) return;
+    setSuggestionLoading(true);
+    engine
+      .getBestMove(state.board, state.turn, SUGGESTION_ENGINE_OPTIONS)
+      .then((move) => {
+        setSuggestedMove(move);
+        setSuggestionExplanation(
+          explainMove({
+            move,
+            boardBeforeMove: state.board,
+            boardAfterMove: applyMove(state.board, move),
+            moverColor: state.turn,
+            locale: 'pt',
+          }),
+        );
+      })
+      .catch((error: unknown) => {
+        // Same quiet-failure reasoning as grading: a failed suggestion
+        // request must not block or disrupt play.
+        console.error('[jogar] suggestion request failed:', error);
+      })
+      .finally(() => {
+        setSuggestionLoading(false);
+      });
   }
 
   function doReset() {
@@ -173,8 +295,18 @@ function JogarPageInner() {
         legalTargets={legalTargets}
         mandatoryCaptureSquares={state.mandatoryCaptureSquares}
         lastMove={state.lastMove}
+        suggestedMove={suggestedMove}
         interactive={boardInteractive}
         onSquareClick={handleSquareClick}
+      />
+      <LearningPanel
+        enabled={learningModeEnabled}
+        onToggle={toggleLearningMode}
+        canRequestSuggestion={boardInteractive && !suggestionLoading}
+        onRequestSuggestion={handleRequestSuggestion}
+        suggestionLoading={suggestionLoading}
+        hasSuggestion={suggestedMove !== null}
+        suggestionExplanation={suggestionExplanation}
       />
       <div className="flex gap-4">
         <Link href="/" className="underline" onClick={handleMenuClick}>
