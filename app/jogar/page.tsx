@@ -195,7 +195,7 @@ function JogarPageInner() {
         onPlayAgain={doReset}
       />
       <ConfirmModal
-        open={confirmAction !== null}
+        open={confirmAction !== null && hasProgressToLose}
         title={confirmAction === 'restart' ? 'Reiniciar partida?' : 'Sair para o menu?'}
         message="Vais perder o progresso desta partida."
         confirmLabel={confirmAction === 'restart' ? 'Reiniciar' : 'Sair'}

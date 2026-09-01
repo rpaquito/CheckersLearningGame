@@ -115,8 +115,12 @@ components/GameEndModal/
                            # mascot/confetti yet (Phase 10)
 components/RulesModal/
   RulesModal.tsx          # checkers rules content -- movement, mandatory
-                           # capture, promotion, draw conditions
-lib/checkers/ (additions this phase)
+                           # capture, promotion, draw conditions. Built and
+                           # ready, but not linked from anywhere yet -- no
+                           # trigger button in /jogar opens it; that's
+                           # expected, not a regression, same as
+                           # /configurar above.
+lib/checkers/ (additions in the Toast/Modal UI chrome phase)
   gameEndMessage.ts        # describeGameEnd -- GameStatus -> title/kind for
                             # GameEndModal, no locale param yet (Phase 8)
 ```

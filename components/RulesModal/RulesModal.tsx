@@ -35,7 +35,6 @@ const SECTIONS = [
   },
   {
     title: 'Promoção a dama',
-    text_only: undefined,
     items: [
       {
         title: 'Chegar à última linha',
