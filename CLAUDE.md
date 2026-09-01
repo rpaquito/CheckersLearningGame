@@ -68,6 +68,30 @@ app/jogar/
   page.tsx              # local two-player game loop (click-to-select-then-
                          # move state machine on top of useCheckersGame).
                          # No mode=ai yet -- Phase 3 extends this same file.
+lib/checkers/ (additions this phase)
+  difficulty.ts          # Difficulty/EngineOptions, provisional depth/time/
+                          # randomness numbers per difficulty (spec §3)
+  evaluate.ts             # material + positional scoring, antisymmetric
+                           # between colors on the same board
+  search.ts                # negamax + alpha-beta + iterative deepening;
+                            # findBestMove() is the engine's public entry point
+  selectMove.ts              # selectWeightedMove -- ported from Chess
+                              # Sensei's lib/chess/selectMove.ts, generalized
+                              # to a generic move type instead of a UCI string
+  moveClassification.ts        # evalLoss/classifyMove -- built now (spec §3
+                                # bundles it here) but NOT wired to any UI
+                                # yet; that's Phase 4 (learning mode)
+  checkersEngine.worker.ts       # Web Worker entry point -- thin message
+                                  # handler over search.ts, bundled as a
+                                  # native module worker (no external asset,
+                                  # unlike Chess Sensei's prebuilt Stockfish)
+  checkersEngineClient.ts          # promise-serialized wrapper around the
+                                    # worker, dependency-injectable for tests
+  playerColor.ts                    # PlayerColor ('b'|'w'|'random') +
+                                     # resolvePlayerColor
+app/configurar/
+  page.tsx                # difficulty/color picker for vs-computer games;
+                           # plain Tailwind, no chrome/i18n system yet (Phase 5/8)
 ```
 
 ## Conventions
@@ -250,6 +274,57 @@ squares are flat Tailwind colors, not textured images. `PieceIcon` is
 structured (a thin dispatcher over a style module) so Phase 5's
 "moderno"/"anime" styles and the textured `boardTheme` system slot in later
 without restructuring — see the design spec §4/§8 for the full plan.
+
+### The AI engine is a from-scratch minimax, not a vendored binary
+
+Unlike Chess Sensei's vendored Stockfish, `lib/checkers/search.ts` is a
+custom negamax/alpha-beta implementation written for this app (design spec
+§3 confirmed no suitable off-the-shelf "Stockfish for checkers" WASM binary
+exists). It runs in a Web Worker
+(`checkersEngine.worker.ts`) bundled natively by Next.js/Turbopack via
+`new Worker(new URL('./checkersEngine.worker.ts', import.meta.url))` — no
+external/public asset, unlike Stockfish's prebuilt binary loaded from a
+static path. `checkersEngineClient.ts` wraps it behind a promise-serialized
+request queue (same reasoning as `stockfishClient.ts`: concurrent
+`getBestMove`/`evaluate` calls could otherwise cross-resolve), but skips the
+UCI text protocol and WASM-load readiness handshake entirely, since there's
+no external engine process to wait on.
+
+### Worker plumbing is deliberately untested; the client wrapper's queueing logic isn't
+
+`checkersEngine.worker.ts`'s `self.onmessage` handler has no dedicated test
+file — jsdom has no functional `Worker` to exercise it against, matching
+Chess Sensei's own precedent for `stockfishClient.ts`. All of the actual
+search/evaluation logic it delegates to (`search.ts`, `evaluate.ts`) is
+fully unit-tested on its own, independent of the worker.
+`checkersEngineClient.ts`'s promise-serialization *is* unit-tested despite
+this, via a dependency-injected fake `WorkerLike` object
+(`checkersEngineClient.test.ts`) — a deliberate, narrow improvement over
+Chess Sensei's precedent: only the queueing behavior is made testable this
+way, not real threading or the search algorithm itself.
+
+### Move-quality grading exists as pure functions, unused by any UI yet
+
+`lib/checkers/moveClassification.ts` (`evalLoss`/`classifyMove`) and the
+worker's `evaluate` message were built in the AI-opponent phase (spec §3
+bundles them there, since the engine's own evaluator is what feeds them) but
+are not wired into any UI — no toast, no suggestion overlay. That's Phase 4
+(learning mode), which needs highlighting UI that doesn't exist yet.
+
+### `/configurar` and `/jogar`'s AI wiring stay chrome-free, matching `/jogar`'s own precedent
+
+Neither imports Chess Sensei's `ChipButton`/`PageChrome`/`useTranslation`/
+`GameSetup`/`ToggleGroup` — none of that exists in this repo yet (Phase 5
+visual identity, Phase 8 i18n). Plain Tailwind, hardcoded Portuguese
+strings, same as `/jogar`'s existing style.
+
+### `useSearchParams()` requires a `Suspense` boundary — enforced at build time, not just lint
+
+`app/jogar/page.tsx` splits into `JogarPageInner` (reads `useSearchParams()`)
+and a default-exported `JogarPage` that wraps it in `<Suspense
+fallback={null}>`. This repo's `next.config.ts` sets `output: 'export'` for
+the Capacitor iOS build, and static export strictly enforces this — omitting
+the `Suspense` wrapper fails `npm run build`, not just a lint warning.
 
 ## Deploy
 
