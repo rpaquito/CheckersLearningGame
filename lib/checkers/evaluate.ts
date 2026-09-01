@@ -1,4 +1,4 @@
-import type { Board, Color } from './types';
+import type { Board, CheckersMove, Color } from './types';
 import { squareToRowCol, isBackRowFor } from './board';
 import { allLegalMoves } from './moveGeneration';
 
@@ -21,7 +21,13 @@ const CENTER_COLUMNS = new Set([3, 4]);
 // `color`, and the mobility term is a plain difference of each side's own
 // move count -- so evaluate(board, other-color) === -evaluate(board, color)
 // always (see evaluate.test.ts's antisymmetry test).
-export function evaluate(board: Board, color: Color): number {
+//
+// `ownMoves` is an optional optimization, not part of the score: pass
+// allLegalMoves(board, color) when the caller already has it (search.ts's
+// negamax always does at a leaf) and this skips regenerating it. Omitting
+// it is always correct -- passing anything OTHER than color's real legal
+// move list is not.
+export function evaluate(board: Board, color: Color, ownMoves?: readonly CheckersMove[]): number {
   const opponent: Color = color === 'b' ? 'w' : 'b';
   let score = 0;
   for (let s = 1; s <= 32; s++) {
@@ -44,6 +50,7 @@ export function evaluate(board: Board, color: Color): number {
     }
     if (CENTER_COLUMNS.has(col)) score += sign * CENTER_COLUMN_BONUS;
   }
-  score += MOBILITY_WEIGHT * (allLegalMoves(board, color).length - allLegalMoves(board, opponent).length);
+  const ownMoveCount = (ownMoves ?? allLegalMoves(board, color)).length;
+  score += MOBILITY_WEIGHT * (ownMoveCount - allLegalMoves(board, opponent).length);
   return score;
 }
