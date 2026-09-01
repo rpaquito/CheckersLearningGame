@@ -125,9 +125,24 @@ openings trainer's opening names (spec §6).
 Unlike Chess Sensei's `useChessGame` (which the twin project's own
 `CLAUDE.md` documents as having a *known, unfixed* hydration bug),
 `useCheckersGame` reads `localStorage` only inside a `useEffect`, after the
-initial (always-fresh) render — see the "SSR-hydration-safe pattern"
-comment in the source. This was done correctly from the start rather than
-importing the twin project's bug.
+initial (always-fresh) render — see the hydration `useEffect` in the
+source. This was done correctly from the start rather than importing the
+twin project's bug.
+
+A real, non-blocking finding from manual browser testing, independently
+verified by the final reviewer: hydration can still lose a saved game on
+the very first page load after a real move was made, if the persistence
+effect's write — which closes over the pre-hydration `game` value — runs
+after the hydration effect's `setGame(parsed)` call but before the
+resulting re-render. In practice the window is real but narrow: production
+builds (`next build && next start`) were verified to persist correctly
+across reload, and the loss was only reproduced under `next dev`'s React
+Strict Mode double-effect invocation — though the underlying race isn't
+strictly limited to that mode (a tab closed at exactly the wrong
+single-frame window could in principle lose a save even outside Strict
+Mode). Not fixed here; the suggested remedy is gating the persistence
+effect's write on a "hydration has completed" ref so it never fires with a
+pre-hydration closure value.
 
 ### `makeMove`'s return value is now reliable on every call — and its tie-break is documented, not solved
 

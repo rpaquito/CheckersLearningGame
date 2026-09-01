@@ -131,9 +131,9 @@ export function CheckersBoard({
               key={piece.id}
               data-square={piece.square}
               className={[
-                'absolute flex items-center justify-center transition-all duration-400 motion-reduce:transition-none',
+                'absolute flex items-center justify-center transition-all duration-300 motion-reduce:transition-none',
                 piece.color === 'b' ? 'text-stone-900' : 'text-stone-50',
-                piece.removing ? 'opacity-0 scale-75 duration-300' : 'opacity-100',
+                piece.removing ? 'opacity-0 scale-75' : 'opacity-100',
               ].join(' ')}
               style={{ left: `${col * 12.5}%`, top: `${row * 12.5}%`, width: '12.5%', height: '12.5%' }}
             >
