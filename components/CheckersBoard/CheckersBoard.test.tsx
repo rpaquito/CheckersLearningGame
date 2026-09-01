@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, fireEvent } from '@testing-library/react';
+import { render, fireEvent, act } from '@testing-library/react';
 import { createInitialBoard } from '@/lib/checkers/board';
+import { applyMove } from '@/lib/checkers/moveGeneration';
+import type { Piece } from '@/lib/checkers/types';
 import { CheckersBoard } from './CheckersBoard';
 
 describe('CheckersBoard', () => {
@@ -108,5 +110,62 @@ describe('CheckersBoard interaction', () => {
     );
     const square11 = container.querySelector('[aria-label="square 11"]');
     expect(square11?.className).toContain('outline-amber-400');
+  });
+});
+
+function emptyBoard(): (Piece | null)[] {
+  return new Array(32).fill(null);
+}
+
+describe('CheckersBoard animation', () => {
+  it('moves a piece to its new square when the board prop reflects a simple move', () => {
+    const board1 = createInitialBoard();
+    const move = { from: 11, to: 15, captures: [], promotes: false };
+    const board2 = applyMove(board1, move);
+    const { container, rerender } = render(
+      <CheckersBoard board={board1} turn="b" selectedSquare={null} legalTargets={[]} mandatoryCaptureSquares={[]} lastMove={null} onSquareClick={() => {}} />,
+    );
+    rerender(
+      <CheckersBoard board={board2} turn="w" selectedSquare={null} legalTargets={[]} mandatoryCaptureSquares={[]} lastMove={move} onSquareClick={() => {}} />,
+    );
+    expect(container.querySelector('[data-square="15"]')).not.toBeNull();
+    expect(container.querySelector('[data-square="11"]')).toBeNull();
+  });
+
+  it('fades a captured piece out and removes it after the fade duration', () => {
+    vi.useFakeTimers();
+    try {
+      const board1 = emptyBoard();
+      board1[10] = { color: 'b', kind: 'man' }; // 11
+      board1[14] = { color: 'w', kind: 'man' }; // 15
+      const move = { from: 11, to: 18, captures: [15], promotes: false };
+      const board2 = applyMove(board1, move);
+      const { container, rerender } = render(
+        <CheckersBoard board={board1} turn="b" selectedSquare={null} legalTargets={[]} mandatoryCaptureSquares={[]} lastMove={null} onSquareClick={() => {}} />,
+      );
+      rerender(
+        <CheckersBoard board={board2} turn="w" selectedSquare={null} legalTargets={[]} mandatoryCaptureSquares={[]} lastMove={move} onSquareClick={() => {}} />,
+      );
+      expect(container.querySelector('[data-square="15"]')).not.toBeNull(); // still present, fading
+      expect(container.querySelector('[data-square="18"]')).not.toBeNull(); // the moved piece has arrived
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+      expect(container.querySelector('[data-square="15"]')).toBeNull(); // removed after the fade
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('snaps to a fresh position (no animation) when no legal move connects the two boards', () => {
+    const board1 = createInitialBoard();
+    const board2 = emptyBoard(); // unrelated position, e.g. after a reset
+    const { container, rerender } = render(
+      <CheckersBoard board={board1} turn="b" selectedSquare={null} legalTargets={[]} mandatoryCaptureSquares={[]} lastMove={null} onSquareClick={() => {}} />,
+    );
+    rerender(
+      <CheckersBoard board={board2} turn="b" selectedSquare={null} legalTargets={[]} mandatoryCaptureSquares={[]} lastMove={null} onSquareClick={() => {}} />,
+    );
+    expect(container.querySelectorAll('[data-square]')).toHaveLength(0);
   });
 });
