@@ -892,7 +892,7 @@ export function describeGameEnd(
 - [ ] **Step 4: Run to verify it passes**
 
 Run: `npx vitest run lib/checkers/gameEndMessage.test.ts`
-Expected: PASS, all 7 tests.
+Expected: PASS, all 6 tests.
 
 - [ ] **Step 5: Typecheck, lint, commit and push**
 
