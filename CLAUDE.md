@@ -98,6 +98,27 @@ app/configurar/
                             # (Phase 5/8). Reachable only by typing the URL —
                             # nothing links to it until Phase 5 builds the
                             # real menu; that's expected, not a regression.
+lib/ui/
+  useFocusTrap.ts        # modal focus trapping -- game-agnostic, no chess/
+                          # checkers dependency, ported unchanged
+components/Toast/
+  Toast.tsx               # pure toast card, no timer -- closes via onDismiss
+  ToastProvider.tsx        # app-wide context (mounted in app/layout.tsx),
+                            # show()/dismiss(), 4s auto-dismiss on every tone
+                            # (no 'check'-style blocking tone -- no checkers
+                            # analog, see CLAUDE.md Conventions)
+components/ConfirmModal/
+  ConfirmModal.tsx        # generic confirm/cancel popup, backdrop+Escape+
+                           # cancel all count as "no"
+components/GameEndModal/
+  GameEndModal.tsx        # win/lose/draw modal -- text/button only, no
+                           # mascot/confetti yet (Phase 10)
+components/RulesModal/
+  RulesModal.tsx          # checkers rules content -- movement, mandatory
+                           # capture, promotion, draw conditions
+lib/checkers/ (additions this phase)
+  gameEndMessage.ts        # describeGameEnd -- GameStatus -> title/kind for
+                            # GameEndModal, no locale param yet (Phase 8)
 ```
 
 ## Conventions
@@ -406,6 +427,44 @@ reads `useSearchParams()` without a `Suspense` boundary above it fails the
 build. (`next.config.ts` additionally sets `output: 'export'`, but only under
 `BUILD_TARGET=capacitor` — the failure does not depend on that; it happens in
 the ordinary build too.)
+
+### Toast/Modal chrome is ported behaviorally, not visually, from Chess Sensei
+
+`Toast`/`ToastProvider`/`ConfirmModal`/`GameEndModal`/`RulesModal` reuse Chess
+Sensei's *shape* (backdrop, `role="dialog"`, focus trap via
+`lib/ui/useFocusTrap.ts`, Escape-to-close) but not its visual chrome: no
+`PageChrome`/`ChipButton` (Phase 5), no `useTranslation`/i18n dictionaries
+(Phase 8), no mascot illustrations or confetti animation on `GameEndModal`
+(Phase 10 — this repo has no `public/gameend/` assets or `animate-confetti-pop`
+keyframe yet). Plain Tailwind, hardcoded Portuguese, matching `/jogar`'s and
+`/configurar`'s established style.
+
+### No 'check' toast tone — checkers has no analog
+
+Chess Sensei's `ToastTone` includes a `'check'` tone that blocks board
+interaction until manually dismissed (no auto-dismiss timer). This repo's
+`ToastTone` (`'info' | MoveQuality`) has no equivalent: per spec §4, an
+illegal move is simply never offered as a clickable target, so there's
+nothing to react to and no tone needs to hold the board hostage. Every tone
+here auto-dismisses after 4 seconds.
+
+### `GameEndModal` opens automatically; `ConfirmModal` gates only real progress
+
+`/jogar` opens `GameEndModal` via an effect watching `state.isGameOver` —
+not a button the player has to click. `ConfirmModal` for "Reiniciar
+partida"/"Menu inicial" only appears when `!state.isGameOver &&
+state.lastMove !== null` (a move has actually been made and the game isn't
+already over) — at the very start of a fresh game there's nothing to lose,
+and once the game has ended `GameEndModal`'s own "Jogar novamente"/"Menu
+inicial" already handle that transition without a redundant second prompt.
+
+### `describeGameEnd` has no `locale` parameter yet
+
+Unlike Chess Sensei's `lib/chess/gameEndMessage.ts` (which takes a `Locale`
+and reads from i18n dictionaries), `lib/checkers/gameEndMessage.ts`'s
+`describeGameEnd` hardcodes Portuguese strings directly — no i18n system
+exists in this repo yet (Phase 8). Revisit this function's signature when
+that phase adds a `Locale`/dictionary system.
 
 ## Deploy
 
