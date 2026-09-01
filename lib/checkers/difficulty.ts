@@ -23,3 +23,10 @@ const DIFFICULTY_OPTIONS: Record<Difficulty, EngineOptions> = {
 export function difficultyToEngineOptions(difficulty: Difficulty): EngineOptions {
   return DIFFICULTY_OPTIONS[difficulty];
 }
+
+// A move suggestion must reflect the engine's real best move "regardless of
+// game difficulty" (spec §5) -- deliberately NOT a reference to
+// DIFFICULTY_OPTIONS.dificil, even though the numbers start identical, so a
+// future retuning of "hard opponent feel" can never silently also change
+// suggestion strength.
+export const SUGGESTION_ENGINE_OPTIONS: EngineOptions = { maxDepth: 10, timeBudgetMs: 1800, randomness: 0 };

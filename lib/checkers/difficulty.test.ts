@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { difficultyToEngineOptions } from './difficulty';
+import { difficultyToEngineOptions, SUGGESTION_ENGINE_OPTIONS } from './difficulty';
 
 describe('difficultyToEngineOptions', () => {
   it('returns facil options', () => {
@@ -12,5 +12,11 @@ describe('difficultyToEngineOptions', () => {
 
   it('returns dificil options with zero randomness (always the best move)', () => {
     expect(difficultyToEngineOptions('dificil')).toEqual({ maxDepth: 10, timeBudgetMs: 1800, randomness: 0 });
+  });
+});
+
+describe('SUGGESTION_ENGINE_OPTIONS', () => {
+  it('is a full-strength, deterministic configuration independent of any Difficulty', () => {
+    expect(SUGGESTION_ENGINE_OPTIONS).toEqual({ maxDepth: 10, timeBudgetMs: 1800, randomness: 0 });
   });
 });
