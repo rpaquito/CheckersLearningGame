@@ -2,20 +2,15 @@
 
 import Link from 'next/link';
 import { Suspense, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCheckersGame } from '@/lib/checkers/useCheckersGame';
 import { CheckersBoard } from '@/components/CheckersBoard/CheckersBoard';
+import { GameEndModal } from '@/components/GameEndModal/GameEndModal';
+import { ConfirmModal } from '@/components/ConfirmModal/ConfirmModal';
 import { createCheckersEngineClient, type CheckersEngineClient } from '@/lib/checkers/checkersEngineClient';
 import { difficultyToEngineOptions, type Difficulty } from '@/lib/checkers/difficulty';
 import { resolvePlayerColor, type PlayerColor } from '@/lib/checkers/playerColor';
 import type { Color, Square } from '@/lib/checkers/types';
-
-const STATUS_LABEL: Record<string, string> = {
-  playing: '',
-  'no-moves': 'Fim de jogo — sem jogadas possíveis',
-  'draw-repetition': 'Empate por repetição de posição',
-  'draw-no-capture': 'Empate — 40 lances sem captura',
-};
 
 function isDifficulty(value: string | null): value is Difficulty {
   return value === 'facil' || value === 'medio' || value === 'dificil';
@@ -25,7 +20,10 @@ function isPlayerColor(value: string | null): value is PlayerColor {
   return value === 'b' || value === 'w' || value === 'random';
 }
 
+type ConfirmAction = 'restart' | 'menu' | null;
+
 function JogarPageInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const isAiMode = searchParams.get('mode') === 'ai';
   const difficultyParam = searchParams.get('difficulty');
@@ -36,13 +34,9 @@ function JogarPageInner() {
   const { state, legalMovesFrom, makeMove, reset } = useCheckersGame(true);
   const [selected, setSelected] = useState<Square | null>(null);
   const [engineError, setEngineError] = useState(false);
+  const [gameEndOpen, setGameEndOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
 
-  // /configurar already resolves 'random' into a concrete 'b'/'w' before
-  // navigating here, precisely so a mid-game reload can't re-roll which side
-  // the human is playing (the saved position comes back from localStorage,
-  // but a re-rolled color would not match it). This call is therefore
-  // defensive handling of an already-concrete value for hand-typed URLs; the
-  // lazy initializer still keeps it stable for the lifetime of the mount.
   const [humanColor] = useState<Color>(() => resolvePlayerColor(colorChoice));
   const aiColor: Color = humanColor === 'b' ? 'w' : 'b';
 
@@ -69,15 +63,11 @@ function JogarPageInner() {
       .then((move) => {
         if (cancelled) return;
         if (!makeMove(move.from, move.to)) {
-          // Should be impossible: the engine only ever returns moves from
-          // allLegalMoves. Loud rather than a silently frozen board.
           console.error('[jogar] engine returned a move the game rejected:', move);
           setEngineError(true);
         }
       })
       .catch((error: unknown) => {
-        // The client rejects on unmount/terminate too -- that's expected
-        // teardown, not a failure worth reporting.
         if (cancelled) return;
         console.error('[jogar] engine request failed:', error);
         setEngineError(true);
@@ -87,11 +77,23 @@ function JogarPageInner() {
     };
   }, [isAiTurn, state.board, state.turn, difficulty, makeMove]);
 
+  // Opens the moment the game ends -- once per game, since state.isGameOver
+  // only flips false->true when a fresh reset() happens (which also closes
+  // this via doReset below). Genuinely needs local state decoupled from
+  // state.isGameOver (not derived inline) so the player can dismiss the
+  // modal (X/Escape/backdrop) without state.isGameOver itself changing and
+  // reopening it -- same "necessary setState-in-effect" shape as
+  // useCheckersGame's localStorage hydration effect.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (state.isGameOver) setGameEndOpen(true);
+  }, [state.isGameOver]);
+
   const legalTargets = selected !== null ? legalMovesFrom(selected) : [];
 
   function handleSquareClick(square: Square) {
     if (state.isGameOver) return;
-    if (isAiMode && state.turn === aiColor) return; // ignore clicks during the AI's turn
+    if (isAiMode && state.turn === aiColor) return;
 
     if (selected !== null && legalTargets.includes(square)) {
       makeMove(selected, square);
@@ -107,20 +109,56 @@ function JogarPageInner() {
     }
   }
 
-  function handleReset() {
+  function doReset() {
     reset();
     setSelected(null);
     setEngineError(false);
+    setGameEndOpen(false);
+  }
+
+  // Progress worth confirming before discarding: at least one move has
+  // been made, and the game hasn't already ended (GameEndModal's own
+  // "Jogar novamente"/"Menu inicial" already handle that transition
+  // without a redundant extra prompt).
+  const hasProgressToLose = !state.isGameOver && state.lastMove !== null;
+
+  function handleRestartClick() {
+    if (hasProgressToLose) {
+      setConfirmAction('restart');
+    } else {
+      doReset();
+    }
+  }
+
+  function handleMenuClick(event: React.MouseEvent) {
+    if (hasProgressToLose) {
+      event.preventDefault();
+      setConfirmAction('menu');
+    }
+    // else: let the <Link> navigate normally.
+  }
+
+  function handleConfirmAction() {
+    if (confirmAction === 'restart') {
+      doReset();
+    } else if (confirmAction === 'menu') {
+      // ConfirmModal's confirmLabel renders as plain button text, not a
+      // link (see Task 3) -- confirming a menu exit must navigate
+      // explicitly, there's no <Link> to fall back on here.
+      router.push('/');
+    }
+    setConfirmAction(null);
+  }
+
+  function handleCancelConfirm() {
+    setConfirmAction(null);
   }
 
   const turnLabel = state.turn === 'b' ? 'Vez das pretas' : 'Vez das brancas';
   const boardInteractive = !state.isGameOver && !(isAiMode && state.turn === aiColor);
 
-  // Reuses the one aria-live status line rather than adding chrome: the AI
-  // can think for up to its full time budget, and silence there reads as a
-  // frozen board.
   let statusText: string;
-  if (state.isGameOver) statusText = STATUS_LABEL[state.status];
+  if (state.isGameOver) statusText = 'Fim de jogo';
   else if (engineError) statusText = 'Erro no motor de jogo — reinicie a partida';
   else if (isAiTurn) statusText = 'A pensar...';
   else statusText = turnLabel;
@@ -139,13 +177,32 @@ function JogarPageInner() {
         onSquareClick={handleSquareClick}
       />
       <div className="flex gap-4">
-        <Link href="/" className="underline">
+        <Link href="/" className="underline" onClick={handleMenuClick}>
           Menu inicial
         </Link>
-        <button type="button" onClick={handleReset} className="underline">
+        <button type="button" onClick={handleRestartClick} className="underline">
           Reiniciar partida
         </button>
       </div>
+
+      <GameEndModal
+        open={gameEndOpen}
+        status={state.status}
+        mode={isAiMode ? 'ai' : 'local'}
+        humanColor={humanColor}
+        turn={state.turn}
+        onClose={() => setGameEndOpen(false)}
+        onPlayAgain={doReset}
+      />
+      <ConfirmModal
+        open={confirmAction !== null}
+        title={confirmAction === 'restart' ? 'Reiniciar partida?' : 'Sair para o menu?'}
+        message="Vais perder o progresso desta partida."
+        confirmLabel={confirmAction === 'restart' ? 'Reiniciar' : 'Sair'}
+        cancelLabel="Cancelar"
+        onConfirm={handleConfirmAction}
+        onCancel={handleCancelConfirm}
+      />
     </main>
   );
 }
