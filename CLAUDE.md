@@ -65,33 +65,39 @@ components/CheckersBoard/
   pieceStyles/
     classico.tsx          # man = disc + rim, king = disc + rim + crown polygon
 app/jogar/
-  page.tsx              # local two-player game loop (click-to-select-then-
-                         # move state machine on top of useCheckersGame).
-                         # No mode=ai yet -- Phase 3 extends this same file.
-lib/checkers/ (additions this phase)
-  difficulty.ts          # Difficulty/EngineOptions, provisional depth/time/
-                          # randomness numbers per difficulty (spec §3)
-  evaluate.ts             # material + positional scoring, antisymmetric
-                           # between colors on the same board
-  search.ts                # negamax + alpha-beta + iterative deepening;
+  page.tsx                  # the ONE game loop for both modes: a click-to-
+                            # select-then-move state machine over
+                            # useCheckersGame. `?mode=ai` (plus difficulty and
+                            # a concrete color) additionally drives the engine
+                            # client on the AI's turn; without it, the same
+                            # page is local two-player on one device.
+lib/checkers/ (additions in the AI-opponent phase)
+  difficulty.ts             # Difficulty/EngineOptions, provisional depth/time/
+                            # randomness numbers per difficulty (spec §3)
+  evaluate.ts               # material + positional scoring, antisymmetric
+                            # between colors on the same board
+  search.ts                 # negamax + alpha-beta + iterative deepening;
                             # findBestMove() is the engine's public entry point
-  selectMove.ts              # selectWeightedMove -- ported from Chess
-                              # Sensei's lib/chess/selectMove.ts, generalized
-                              # to a generic move type instead of a UCI string
-  moveClassification.ts        # evalLoss/classifyMove -- built now (spec §3
-                                # bundles it here) but NOT wired to any UI
-                                # yet; that's Phase 4 (learning mode)
-  checkersEngine.worker.ts       # Web Worker entry point -- thin message
-                                  # handler over search.ts, bundled as a
-                                  # native module worker (no external asset,
-                                  # unlike Chess Sensei's prebuilt Stockfish)
-  checkersEngineClient.ts          # promise-serialized wrapper around the
-                                    # worker, dependency-injectable for tests
-  playerColor.ts                    # PlayerColor ('b'|'w'|'random') +
-                                     # resolvePlayerColor
+  selectMove.ts             # selectWeightedMove -- ported from Chess Sensei's
+                            # lib/chess/selectMove.ts, generalized to a generic
+                            # move type instead of a UCI string
+  moveClassification.ts     # evalLoss/classifyMove -- built now (spec §3
+                            # bundles it here) but NOT wired to any UI yet;
+                            # that's Phase 4 (learning mode)
+  checkersEngine.worker.ts  # Web Worker entry point -- thin message handler
+                            # over search.ts, bundled as a native module worker
+                            # (no external asset, unlike Chess Sensei's
+                            # prebuilt Stockfish)
+  checkersEngineClient.ts   # promise-serialized wrapper around the worker,
+                            # dependency-injectable for tests
+  playerColor.ts            # PlayerColor ('b'|'w'|'random') +
+                            # resolvePlayerColor
 app/configurar/
-  page.tsx                # difficulty/color picker for vs-computer games;
-                           # plain Tailwind, no chrome/i18n system yet (Phase 5/8)
+  page.tsx                  # difficulty/color picker for vs-computer games;
+                            # plain Tailwind, no chrome/i18n system yet
+                            # (Phase 5/8). Reachable only by typing the URL —
+                            # nothing links to it until Phase 5 builds the
+                            # real menu; that's expected, not a regression.
 ```
 
 ## Conventions
@@ -290,6 +296,47 @@ request queue (same reasoning as `stockfishClient.ts`: concurrent
 UCI text protocol and WASM-load readiness handshake entirely, since there's
 no external engine process to wait on.
 
+### Search scores are mate-distance-relative and NOT normalized across searches
+
+`findBestMove`'s `bestScore` (and every `candidates[].score`) comes out of a
+particular search at a particular completed depth. Two things make those
+numbers non-comparable between searches:
+
+- The terminal-node sentinel is `LOSS_SCORE - depthRemaining`, so a forced
+  win/loss scores differently depending on how many plies away it was found.
+  That is the whole point (it makes the engine hasten its wins and delay its
+  losses), but it means the same forced win scores e.g. `1_000_005` in one
+  search and `1_000_003` in another.
+- Iterative deepening stops at whatever depth the time budget allowed, so two
+  calls on similar positions may have completed different depths.
+- A position with exactly one legal move short-circuits without searching at
+  all and reports the STATIC `evaluate()` of the position as its `bestScore`.
+
+Phase 4 (move-quality grading) therefore must not feed `bestScore` values
+from two different searches straight into `moveClassification.ts`'s
+`evalLoss` without accounting for this — grade a move by comparing scores
+produced within a single fixed-depth search, or normalize the mate-distance
+term out first.
+
+### The engine's time budget is enforced inside the search, not just around it
+
+`search.ts` checks the deadline every `NODES_PER_DEADLINE_CHECK` (4096)
+negamax nodes and throws a single pre-allocated `SEARCH_ABORTED` sentinel,
+caught only by `findBestMove`'s iterative-deepening loop, which discards the
+whole in-progress depth. Two things depend on this and are easy to break:
+
+- **Never merge an aborted depth's partial candidates with a completed
+  depth's.** The unwind exists precisely so a half-scanned depth's
+  artificially skewed scores can't outrank a shallower complete one.
+- **Depth 1 must stay uninterruptible** (`ctx.deadline` is `Infinity` for
+  it), otherwise a tight budget could return with the placeholder
+  `-Infinity` candidate list.
+
+A single legal root move is returned immediately without searching at all —
+common in checkers, since captures are mandatory, and previously the worst
+case for overshoot (the between-root-moves deadline check can never fire with
+only one root move to iterate over, so the full `maxDepth` ran uncapped).
+
 ### Worker plumbing is deliberately untested; the client wrapper's queueing logic isn't
 
 `checkersEngine.worker.ts`'s `self.onmessage` handler has no dedicated test
@@ -302,6 +349,23 @@ this, via a dependency-injected fake `WorkerLike` object
 (`checkersEngineClient.test.ts`) — a deliberate, narrow improvement over
 Chess Sensei's precedent: only the queueing behavior is made testable this
 way, not real threading or the search algorithm itself.
+
+### Every engine request must settle — the queue has no timeout to save it
+
+`checkersEngineClient.ts` serializes requests behind a `busy` flag that only
+clears when the in-flight request settles. There is no watchdog: one request
+that never settles locks the AI for the rest of the session, with no recovery
+short of a page reload. So every path settles explicitly — the worker's
+`self.onmessage` wraps its whole body in `try/catch` and answers with a
+`{ type: 'error', message }` response (including for an unrecognized request
+type), the client rejects on that response, on the `Worker` `error` event, on
+a synchronously-throwing `postMessage()`, and on `terminate()` (which settles
+the in-flight request *and* everything still queued). **Any new request or
+response type must preserve the "exactly one response per request"
+invariant.** `app/jogar/page.tsx` catches the resulting rejection, ignoring it
+when its effect has already been cancelled (unmount/terminate is expected
+teardown, not a failure) and otherwise logging and surfacing a message in the
+existing `aria-live` status line.
 
 ### Move-quality grading exists as pure functions, unused by any UI yet
 
@@ -316,15 +380,32 @@ are not wired into any UI — no toast, no suggestion overlay. That's Phase 4
 Neither imports Chess Sensei's `ChipButton`/`PageChrome`/`useTranslation`/
 `GameSetup`/`ToggleGroup` — none of that exists in this repo yet (Phase 5
 visual identity, Phase 8 i18n). Plain Tailwind, hardcoded Portuguese
-strings, same as `/jogar`'s existing style.
+strings, same as `/jogar`'s existing style. `/configurar` is also not linked
+from anywhere yet — it is reached by typing the URL until Phase 5 builds the
+real menu.
+
+### `color=random` is resolved by `/configurar`, never by `/jogar`
+
+`app/configurar/page.tsx`'s `handleStart` calls `resolvePlayerColor` *before*
+navigating and puts the concrete `b`/`w` in the URL, so `/jogar` never sees
+`color=random` in practice. This is load-bearing, not tidiness:
+`useCheckersGame(true)` restores the saved position from `localStorage` on
+mount, so a `/jogar?...&color=random` URL reloaded mid-game would restore the
+board but re-roll the coin — handing the human the opposite side of its own
+pieces half the time. `/jogar`'s own `resolvePlayerColor` call (in a lazy
+`useState` initializer) is now just defensive handling of an
+already-concrete value for hand-typed URLs.
 
 ### `useSearchParams()` requires a `Suspense` boundary — enforced at build time, not just lint
 
 `app/jogar/page.tsx` splits into `JogarPageInner` (reads `useSearchParams()`)
 and a default-exported `JogarPage` that wraps it in `<Suspense
-fallback={null}>`. This repo's `next.config.ts` sets `output: 'export'` for
-the Capacitor iOS build, and static export strictly enforces this — omitting
-the `Suspense` wrapper fails `npm run build`, not just a lint warning.
+fallback={null}>`. This is a hard build error, not a lint warning: a plain
+`npm run build` prerenders these pages, and prerendering a component that
+reads `useSearchParams()` without a `Suspense` boundary above it fails the
+build. (`next.config.ts` additionally sets `output: 'export'`, but only under
+`BUILD_TARGET=capacitor` — the failure does not depend on that; it happens in
+the ordinary build too.)
 
 ## Deploy
 
