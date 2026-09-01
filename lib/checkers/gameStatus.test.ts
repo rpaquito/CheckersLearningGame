@@ -44,4 +44,17 @@ describe('boardKey', () => {
     expect(boardKey(board, 'b')).not.toBe(boardKey(board, 'w'));
     expect(boardKey(board, 'b')).toBe(boardKey(createInitialBoard(), 'b'));
   });
+
+  it('distinguishes a king from a man on the same square (does not collapse the kind)', () => {
+    // Every other test here uses createInitialBoard(), which has zero
+    // kings, so this exercises boardKey's `p.kind === 'king' ? 'K' : 'm'`
+    // branch for the first time. A silent collision here would be a real
+    // (if rare) draw-by-repetition correctness bug, since boardKey drives
+    // positionCounts.
+    const withKing = emptyBoard();
+    withKing[15] = { color: 'b', kind: 'king' }; // square 16
+    const withMan = emptyBoard();
+    withMan[15] = { color: 'b', kind: 'man' }; // square 16
+    expect(boardKey(withKing, 'b')).not.toBe(boardKey(withMan, 'b'));
+  });
 });

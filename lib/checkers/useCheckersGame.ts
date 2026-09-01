@@ -42,6 +42,21 @@ function initialGame(): PersistedGame {
   };
 }
 
+// Guards against syntactically-valid-but-wrong-shape JSON (e.g. `{}`, a
+// truncated save, or a future/incompatible schema version) reaching
+// setGame and then crashing later during render (computeStatus ->
+// allLegalMoves -> board[s-1] access assumes a 32-length board). This is
+// deliberately a shallow shape check, not full runtime validation of every
+// piece/move field — it only needs to rule out the crash-causing shapes.
+function isValidPersistedGame(parsed: unknown): parsed is PersistedGame {
+  if (!parsed || typeof parsed !== 'object') return false;
+  const candidate = parsed as Record<string, unknown>;
+  if (!Array.isArray(candidate.board) || candidate.board.length !== 32) return false;
+  if (candidate.turn !== 'b' && candidate.turn !== 'w') return false;
+  if (!Array.isArray(candidate.positionCounts)) return false;
+  return true;
+}
+
 function mandatoryCaptureSquaresFor(board: Board, turn: Color): Square[] {
   if (!hasAnyCapture(board, turn)) return [];
   const squares: Square[] = [];
@@ -69,13 +84,15 @@ export function useCheckersGame(persist: boolean = true): UseCheckersGameResult 
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
     try {
+      const parsed: unknown = JSON.parse(raw);
+      if (!isValidPersistedGame(parsed)) return; // wrong shape — keep the fresh initial game
       // One-time hydration from localStorage on mount. SSR-safe: window is
       // unavailable during the initial render, so this can't be a lazy
       // useState initializer instead.
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setGame(JSON.parse(raw) as PersistedGame);
+      setGame(parsed);
     } catch {
-      // Corrupted save — ignore, keep the fresh initial game.
+      // Corrupted save (malformed JSON) — ignore, keep the fresh initial game.
     }
   }, [persist]);
 

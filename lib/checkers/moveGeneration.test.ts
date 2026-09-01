@@ -22,6 +22,47 @@ describe('simpleMovesFrom', () => {
     ]);
   });
 
+  it('a lone black man mid-board has exactly its two forward targets and never a backward one', () => {
+    // Geometry verified via squareToRowCol/neighbor: square 14 is {row:3,col:2}.
+    // Forward (se/sw) neighbors are 18 and 17; backward (ne/nw) neighbors are
+    // 10 and 9. On an otherwise-empty board all four are open, so if a man
+    // could move backward this would wrongly include 9/10. This is the test
+    // the reviewer's ALL_DIRECTIONS mutation would break (unlike every other
+    // existing test here, whose backward squares happen to be blocked).
+    const board = emptyBoard();
+    board[13] = { color: 'b', kind: 'man' }; // square 14
+    const moves = simpleMovesFrom(board, 14);
+    expect(moves.map((m) => m.to).sort((a, b) => a - b)).toEqual([17, 18]);
+  });
+
+  it('a white man on square 22 has two forward targets at the start of the game', () => {
+    // Mirrors the black square-11 test above. Geometry: neighbor(22,'nw')=17,
+    // neighbor(22,'ne')=18, both empty at the start (rows 13-20 are empty).
+    const board = createInitialBoard();
+    const moves = simpleMovesFrom(board, 22);
+    expect(moves.map((m) => m.to).sort((a, b) => a - b)).toEqual([17, 18]);
+    expect(moves.every((m) => m.captures.length === 0 && !m.promotes)).toBe(true);
+  });
+
+  it('a white man on the edge (square 21) has only one forward target', () => {
+    // Mirrors the black square-12 test above. Geometry: neighbor(21,'nw') is
+    // off-board (null), neighbor(21,'ne')=17.
+    const board = createInitialBoard();
+    expect(simpleMovesFrom(board, 21)).toEqual([
+      { from: 21, to: 17, captures: [], promotes: false },
+    ]);
+  });
+
+  it('a white man promotes on reaching row 0', () => {
+    // Geometry: square 6 is {row:1,col:2}; neighbor(6,'nw')=1 and
+    // neighbor(6,'ne')=2, both row 0 (white's back row).
+    const board = emptyBoard();
+    board[5] = { color: 'w', kind: 'man' }; // square 6
+    const moves = simpleMovesFrom(board, 6);
+    expect(moves.map((m) => m.to).sort((a, b) => a - b)).toEqual([1, 2]);
+    expect(moves.every((m) => m.promotes)).toBe(true);
+  });
+
   it('a king can move in all four diagonal directions when they are all empty', () => {
     const board = emptyBoard();
     board[15] = { color: 'b', kind: 'king' }; // square 16
@@ -86,6 +127,21 @@ describe('captureMovesFrom', () => {
     expect(captureMovesFrom(board, 22)).toEqual([
       { from: 22, to: 31, captures: [26], promotes: true },
     ]);
+  });
+
+  it('a man cannot capture an enemy piece diagonally behind it, even with an open landing square', () => {
+    // Geometry verified: neighbor(14,'nw')=9 (behind/north of 14 for black,
+    // since FORWARD_DIRECTIONS.b is ['se','sw']), and neighbor(9,'nw')=5, so
+    // 9/5 form a legitimate northward capture line -- but only a king may
+    // use it. A man's direction set never includes 'nw'/'ne', so this must
+    // be []. This is the capture-side analog of the mutation the previous
+    // test guards against.
+    const board = emptyBoard();
+    board[13] = { color: 'b', kind: 'man' }; // square 14
+    board[8] = { color: 'w', kind: 'man' }; // square 9, diagonally behind 14
+    // square 5 (index 4) stays empty -- the landing square beyond 9 exists
+    // and is open, so a genuine backward-capture bug would find this move.
+    expect(captureMovesFrom(board, 14)).toEqual([]);
   });
 
   it('a king can chain captures through both backward and forward directions', () => {

@@ -112,6 +112,55 @@ initial (always-fresh) render — see the "SSR-hydration-safe pattern"
 comment in the source. This was done correctly from the start rather than
 importing the twin project's bug.
 
+### `inferMove` takes an explicit `turn` parameter, deviating from the spec
+
+The design spec (§2) describes `inferMove(prevBoard, nextBoard)`. The
+implementation is `inferMove(prevBoard, turn, nextBoard)` — a deliberate
+deviation, not an oversight: searching only `allLegalMoves(prevBoard,
+turn)` (the given color's legal moves) instead of both colors' is both
+faster and avoids a rare cross-color ambiguity. Small, defensible, but
+worth recording since this file is the living record of what was actually
+built, not the spec.
+
+### Known design constraint for the future board UI: `from`/`to` alone can't always disambiguate a capture chain
+
+Verified by the final reviewer via brute-force search over king positions
+(rare, needs 3+ available capture routes for the same piece): two distinct
+legal capture chains can share the same `from` and `to` squares while
+capturing different intermediate pieces. A capture chain can even return to
+its own origin square (`from === to`) for a king looping back through its
+own trail. Neither `legalMovesFrom(square): Square[]` nor `makeMove(from,
+to)` can disambiguate the first case as currently shaped. **This needs to
+be resolved when the board UI is designed** — step-by-step landing-square
+input (the way real checkers UIs work) is one natural answer. Flagged here
+as a known, load-bearing constraint for that future work; this plan does
+not attempt to fix it.
+
+### Spec §2's compact board notation was never implemented
+
+The design spec describes a 32-character-plus-turn-marker board notation as
+the board representation. What actually exists is `gameStatus.ts`'s
+`boardKey` — an internal repetition-detection hash with a similar but
+distinct encoding (`b`/`B`/`w`/`W`/`-` per square plus a turn marker is
+close, but it was never designed or documented as the general-purpose
+notation the spec describes, and nothing else in the codebase treats it as
+one). This is real, deferred work for a future plan — it would also let
+test fixtures stop being hand-indexed `board[N] = {...} // square N+1`
+comments, which is exactly the error-prone pattern that caused several
+defects caught during this plan's implementation.
+
+### Captured-but-not-yet-removed pieces blocking a landing square: unobservable in this variant
+
+The capture-chain comment in `moveGeneration.ts` notes that captured pieces
+stay on the working board until the whole move finishes (matching official
+rules). The final reviewer verified this is provably unobservable in
+American checkers specifically: because non-flying kings mean landing
+squares and jumped squares are always on disjoint board-parity classes, a
+capture chain can never actually land on a square still occupied by one of
+its own already-captured (but not-yet-removed) pieces. It would matter for
+the international-draughts variant noted as backlog in the design spec
+(flying kings can jump further), but not for this one.
+
 ## Deploy
 
 Vercel only (same as Chess Sensei — Docker/self-host is not supported). No
