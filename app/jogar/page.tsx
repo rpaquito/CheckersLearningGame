@@ -35,9 +35,14 @@ function JogarPageInner() {
 
   const { state, legalMovesFrom, makeMove, reset } = useCheckersGame(true);
   const [selected, setSelected] = useState<Square | null>(null);
+  const [engineError, setEngineError] = useState(false);
 
-  // Resolved once per mount (not on every render) so a 'random' choice
-  // doesn't reshuffle mid-game -- lazy useState initializer runs exactly once.
+  // /configurar already resolves 'random' into a concrete 'b'/'w' before
+  // navigating here, precisely so a mid-game reload can't re-roll which side
+  // the human is playing (the saved position comes back from localStorage,
+  // but a re-rolled color would not match it). This call is therefore
+  // defensive handling of an already-concrete value for hand-typed URLs; the
+  // lazy initializer still keeps it stable for the lifetime of the mount.
   const [humanColor] = useState<Color>(() => resolvePlayerColor(colorChoice));
   const aiColor: Color = humanColor === 'b' ? 'w' : 'b';
 
@@ -59,10 +64,24 @@ function JogarPageInner() {
     if (!client) return;
     let cancelled = false;
     const options = difficultyToEngineOptions(difficulty);
-    client.getBestMove(state.board, state.turn, options).then((move) => {
-      if (cancelled) return;
-      makeMove(move.from, move.to);
-    });
+    client
+      .getBestMove(state.board, state.turn, options)
+      .then((move) => {
+        if (cancelled) return;
+        if (!makeMove(move.from, move.to)) {
+          // Should be impossible: the engine only ever returns moves from
+          // allLegalMoves. Loud rather than a silently frozen board.
+          console.error('[jogar] engine returned a move the game rejected:', move);
+          setEngineError(true);
+        }
+      })
+      .catch((error: unknown) => {
+        // The client rejects on unmount/terminate too -- that's expected
+        // teardown, not a failure worth reporting.
+        if (cancelled) return;
+        console.error('[jogar] engine request failed:', error);
+        setEngineError(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -91,14 +110,24 @@ function JogarPageInner() {
   function handleReset() {
     reset();
     setSelected(null);
+    setEngineError(false);
   }
 
   const turnLabel = state.turn === 'b' ? 'Vez das pretas' : 'Vez das brancas';
   const boardInteractive = !state.isGameOver && !(isAiMode && state.turn === aiColor);
 
+  // Reuses the one aria-live status line rather than adding chrome: the AI
+  // can think for up to its full time budget, and silence there reads as a
+  // frozen board.
+  let statusText: string;
+  if (state.isGameOver) statusText = STATUS_LABEL[state.status];
+  else if (engineError) statusText = 'Erro no motor de jogo — reinicie a partida';
+  else if (isAiTurn) statusText = 'A pensar...';
+  else statusText = turnLabel;
+
   return (
     <main className="flex min-h-dvh flex-col items-center gap-4 p-4">
-      <p aria-live="polite">{state.isGameOver ? STATUS_LABEL[state.status] : turnLabel}</p>
+      <p aria-live="polite">{statusText}</p>
       <CheckersBoard
         board={state.board}
         turn={state.turn}

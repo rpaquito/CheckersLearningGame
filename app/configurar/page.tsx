@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { Difficulty } from '@/lib/checkers/difficulty';
-import type { PlayerColor } from '@/lib/checkers/playerColor';
+import { resolvePlayerColor, type PlayerColor } from '@/lib/checkers/playerColor';
 import { clearSavedGame } from '@/lib/checkers/useCheckersGame';
 
 const DIFFICULTY_OPTIONS: { value: Difficulty; label: string }[] = [
@@ -26,7 +26,12 @@ export default function ConfigurarPage() {
 
   function handleStart() {
     clearSavedGame();
-    const params = new URLSearchParams({ mode: 'ai', difficulty, color });
+    // Resolve 'random' HERE, once per game, and put the concrete 'b'/'w' in
+    // the URL. /jogar restores a saved position from localStorage on mount,
+    // so if the URL still said `color=random` a mid-game reload would
+    // re-roll the coin and hand the human the opposite side of the board it
+    // had been playing half the time.
+    const params = new URLSearchParams({ mode: 'ai', difficulty, color: resolvePlayerColor(color) });
     router.push(`/jogar?${params.toString()}`);
   }
 
