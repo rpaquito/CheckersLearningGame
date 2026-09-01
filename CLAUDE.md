@@ -51,6 +51,23 @@ lib/checkers/
   inferMove.ts               # board-diff helper for move animation (not
                               # consumed yet — wired up in the UI phase)
   *.test.ts                 # co-located tests, one per module above
+components/CheckersBoard/
+  CheckersBoard.tsx   # "dumb" 8x8 board -- never decides legality, renders
+                       # whatever the caller computed (selectedSquare/
+                       # legalTargets/mandatoryCaptureSquares/lastMove props).
+                       # Derives move animation via inferMove board-diffing,
+                       # not by being told what moved -- same philosophy as
+                       # Chess Sensei's ChessBoard.tsx, and for the same
+                       # reason: reusable by future non-hook callers (e.g. a
+                       # tutorial demo) without needing a lastMove-shaped prop.
+  PieceIcon.tsx         # dispatches to a piece style -- only "classico"
+                        # exists yet (see pieceStyles/), Phase 5 adds more
+  pieceStyles/
+    classico.tsx          # man = disc + rim, king = disc + rim + crown polygon
+app/jogar/
+  page.tsx              # local two-player game loop (click-to-select-then-
+                         # move state machine on top of useCheckersGame).
+                         # No mode=ai yet -- Phase 3 extends this same file.
 ```
 
 ## Conventions
@@ -188,7 +205,48 @@ its own already-captured (but not-yet-removed) pieces. It would matter for
 the international-draughts variant noted as backlog in the design spec
 (flying kings can jump further), but not for this one.
 
+### The board is "dumb"; animation is derived, not told
+
+`CheckersBoard` never checks whether a click is legal — it only renders
+`selectedSquare`/`legalTargets`/`mandatoryCaptureSquares` exactly as given,
+and calls `onSquareClick` unconditionally. All legality lives in
+`lib/checkers/` (`useCheckersGame`'s `legalMovesFrom`/`makeMove`), consumed
+by `app/jogar/page.tsx`'s click-handling state machine. Move animation
+works the same way as Chess Sensei's board: `CheckersBoard` diffs
+consecutive `board` props via `inferMove` to discover what moved, rather
+than being told directly — this keeps it reusable for a future context
+(e.g. a tutorial demo) that doesn't go through `useCheckersGame` at all.
+
+### Multi-jump animation is a single slide, not stepwise hops
+
+Unlike a real physical board, a captured piece doesn't visually "hop" square
+by square during a multi-jump chain — `CheckersBoard` animates the moving
+piece with one CSS transition straight from `from` to the chain's final
+`to`, while every captured piece (there can be more than one) fades out
+together. This is a deliberate scope choice for this phase, not a bug: true
+stepwise-hop animation would need `CheckersMove`/`applyMove` to expose the
+chain's intermediate landing squares, which nothing needs yet. Revisit if
+it's ever raised as a real polish request.
+
+### Single piece style, flat square colors -- by design, for now
+
+Only `classico` exists (`components/CheckersBoard/pieceStyles/`), and board
+squares are flat Tailwind colors, not textured images. `PieceIcon` is
+structured (a thin dispatcher over a style module) so Phase 5's
+"moderno"/"anime" styles and the textured `boardTheme` system slot in later
+without restructuring — see the design spec §4/§8 for the full plan.
+
 ## Deploy
 
 Vercel only (same as Chess Sensei — Docker/self-host is not supported). No
 environment variables needed — no backend, no auth, no API routes.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
