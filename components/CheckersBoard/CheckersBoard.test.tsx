@@ -111,6 +111,43 @@ describe('CheckersBoard interaction', () => {
     const square11 = container.querySelector('[aria-label="square 11"]');
     expect(square11?.className).toContain('outline-amber-400');
   });
+
+  it('applies the suggestion outline class to the suggested move\'s from/to squares', () => {
+    const { container } = render(
+      <CheckersBoard
+        board={createInitialBoard()}
+        turn="b"
+        selectedSquare={null}
+        legalTargets={[]}
+        mandatoryCaptureSquares={[]}
+        lastMove={null}
+        suggestedMove={{ from: 11, to: 15, captures: [], promotes: false }}
+        onSquareClick={() => {}}
+      />,
+    );
+    const from = container.querySelector('[aria-label="square 11"]');
+    const to = container.querySelector('[aria-label="square 15"]');
+    const other = container.querySelector('[aria-label="square 1"]');
+    expect(from?.className).toContain('outline-violet-400');
+    expect(to?.className).toContain('outline-violet-400');
+    expect(other?.className).not.toContain('outline-violet-400');
+  });
+
+  it('renders no suggestion outline when suggestedMove is null', () => {
+    const { container } = render(
+      <CheckersBoard
+        board={createInitialBoard()}
+        turn="b"
+        selectedSquare={null}
+        legalTargets={[]}
+        mandatoryCaptureSquares={[]}
+        lastMove={null}
+        suggestedMove={null}
+        onSquareClick={() => {}}
+      />,
+    );
+    expect(container.querySelector('.outline-violet-400')).toBeNull();
+  });
 });
 
 function emptyBoard(): (Piece | null)[] {

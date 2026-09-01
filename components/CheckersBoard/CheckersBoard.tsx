@@ -14,6 +14,7 @@ export interface CheckersBoardProps {
   legalTargets: Square[];
   mandatoryCaptureSquares: Square[];
   lastMove: CheckersMove | null;
+  suggestedMove?: CheckersMove | null;
   interactive?: boolean;
   onSquareClick?: (square: Square) => void;
 }
@@ -44,6 +45,7 @@ export function CheckersBoard({
   legalTargets,
   mandatoryCaptureSquares,
   lastMove,
+  suggestedMove = null,
   interactive = true,
   onSquareClick,
 }: CheckersBoardProps): ReactElement {
@@ -96,6 +98,7 @@ export function CheckersBoard({
       const isLegalTarget = legalTargets.includes(square);
       const isMandatory = mandatoryCaptureSquares.includes(square);
       const isLastMove = lastMove !== null && (square === lastMove.from || square === lastMove.to);
+      const isSuggested = suggestedMove !== null && (square === suggestedMove.from || square === suggestedMove.to);
       squares.push(
         <button
           key={square}
@@ -108,6 +111,7 @@ export function CheckersBoard({
             isLastMove ? 'ring-4 ring-yellow-400' : '',
             isSelected ? 'outline outline-4 outline-sky-500' : '',
             isMandatory ? 'outline outline-4 outline-amber-400' : '',
+            isSuggested ? 'outline outline-4 outline-violet-400' : '',
           ]
             .filter(Boolean)
             .join(' ')}
