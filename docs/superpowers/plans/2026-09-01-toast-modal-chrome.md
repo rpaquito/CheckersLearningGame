@@ -547,7 +547,7 @@ export function useToast(): ToastContextValue {
 - [ ] **Step 5: Run to verify it passes**
 
 Run: `npx vitest run components/Toast/`
-Expected: PASS, all 11 tests (4 `Toast.test.tsx` + 7 `ToastProvider.test.tsx`).
+Expected: PASS, all 10 tests (4 `Toast.test.tsx` + 6 `ToastProvider.test.tsx`).
 
 - [ ] **Step 6: Run the full suite, typecheck, lint**
 
