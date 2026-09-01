@@ -112,6 +112,33 @@ initial (always-fresh) render — see the "SSR-hydration-safe pattern"
 comment in the source. This was done correctly from the start rather than
 importing the twin project's bug.
 
+### `makeMove`'s return value is now reliable on every call — and its tie-break is documented, not solved
+
+An earlier version of `makeMove` computed its `boolean` return value via a
+side-effect flag set inside a `setState` functional updater
+(`let didMove = false; setGame(prev => { didMove = true; ... })`). That
+only worked for the *first* call on a given hook instance — React only
+invokes a `useState` updater "eagerly" (synchronously) for the first
+queued update on a fiber; later calls defer the updater to the render
+pass, so the flag was read before it was ever set. Fixed by computing
+legality and the resulting state synchronously against a `gameRef` that
+mirrors `game` (kept fresh every render) instead of relying on updater
+timing at all — see `lib/checkers/useCheckersGame.ts`'s `makeMove`.
+
+Separately, `makeMove(from, to)` cannot disambiguate two distinct legal
+capture chains that happen to share the same final `to` square while
+capturing different pieces along the way (possible in checkers — a king
+with 3+ available routes to the same landing square). This is rare
+(verified via brute-force search: needs 3+ simultaneous routes, only seen
+in synthetic king-heavy endgame positions, never in 34k+ plies of random
+play from the opening) and is resolved by taking the first match found —
+deterministic, but not driven by any explicit choice. A capture chain can
+also legally return to its own origin square (`from === to`) for a king
+looping back through several jumps. Neither case has a UI resolution yet
+— if/when it needs one, step-by-step landing-square selection (the way
+real checkers UIs work) is the natural fix, requiring the board component
+to expose per-hop choices rather than a single final destination.
+
 ### `inferMove` takes an explicit `turn` parameter, deviating from the spec
 
 The design spec (§2) describes `inferMove(prevBoard, nextBoard)`. The

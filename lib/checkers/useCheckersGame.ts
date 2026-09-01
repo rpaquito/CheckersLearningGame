@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import type { Board, Color, Square, CheckersMove, GameStatus, Piece } from './types';
 import { createInitialBoard } from './board';
 import { legalMovesFrom as legalMovesFromEngine, applyMove, hasAnyCapture } from './moveGeneration';
@@ -75,24 +75,33 @@ export function clearSavedGame(): void {
 
 export function useCheckersGame(persist: boolean = true): UseCheckersGameResult {
   const [game, setGame] = useState<PersistedGame>(initialGame);
+  // Mirrors `game` for synchronous reads inside callbacks. React's useState
+  // functional-updater is only invoked "eagerly" (before the setter call
+  // returns) for the FIRST queued update on a fiber -- every later call in
+  // the same render cycle/lifetime defers the updater to the render pass.
+  // A side-effect flag set inside the updater (the previous approach) is
+  // therefore unreliable after the first call. Reading/writing this ref
+  // directly sidesteps that timing hazard entirely.
+  const gameRef = useRef(game);
+  // eslint-disable-next-line react-hooks/refs
+  gameRef.current = game;
 
-  // Same SSR-hydration-safe pattern as Chess Sensei's useSettings: start
-  // from a fresh game on every render's initial pass, then load the real
-  // saved game post-mount, in an effect.
   useEffect(() => {
     if (!persist) return;
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
     try {
       const parsed: unknown = JSON.parse(raw);
-      if (!isValidPersistedGame(parsed)) return; // wrong shape — keep the fresh initial game
-      // One-time hydration from localStorage on mount. SSR-safe: window is
-      // unavailable during the initial render, so this can't be a lazy
-      // useState initializer instead.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setGame(parsed);
+      if (isValidPersistedGame(parsed)) {
+        gameRef.current = parsed;
+        // One-time hydration from localStorage on mount. SSR-safe: window is
+        // unavailable during the initial render, so this can't be a lazy
+        // useState initializer instead.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setGame(parsed);
+      }
     } catch {
-      // Corrupted save (malformed JSON) — ignore, keep the fresh initial game.
+      // Corrupted save -- ignore, keep the fresh initial game.
     }
   }, [persist]);
 
@@ -102,30 +111,35 @@ export function useCheckersGame(persist: boolean = true): UseCheckersGameResult 
   }, [game, persist]);
 
   const makeMove = useCallback((from: Square, to: Square): boolean => {
-    let didMove = false;
-    setGame((prev) => {
-      const move = legalMovesFromEngine(prev.board, prev.turn, from).find((m) => m.to === to);
-      if (!move) return prev;
-      didMove = true;
-      const nextBoard = applyMove(prev.board, move);
-      const nextTurn: Color = prev.turn === 'b' ? 'w' : 'b';
-      const nextPlySinceLastCapture = move.captures.length > 0 ? 0 : prev.plySinceLastCapture + 1;
-      const key = boardKey(nextBoard, nextTurn);
-      const counts = new Map(prev.positionCounts);
-      counts.set(key, (counts.get(key) ?? 0) + 1);
-      return {
-        board: nextBoard as (Piece | null)[],
-        turn: nextTurn,
-        lastMove: move,
-        plySinceLastCapture: nextPlySinceLastCapture,
-        positionCounts: Array.from(counts.entries()),
-      };
-    });
-    return didMove;
+    const current = gameRef.current;
+    // Tie-break, documented (see CLAUDE.md): if a piece has multiple legal
+    // capture chains that share the same final `to` but capture different
+    // pieces (rare -- needs 3+ simultaneous routes, endgame-only), the
+    // first one found wins, deterministically. No disambiguation UI yet.
+    const move = legalMovesFromEngine(current.board, current.turn, from).find((m) => m.to === to);
+    if (!move) return false;
+    const nextBoard = applyMove(current.board, move) as (Piece | null)[];
+    const nextTurn: Color = current.turn === 'b' ? 'w' : 'b';
+    const nextPlySinceLastCapture = move.captures.length > 0 ? 0 : current.plySinceLastCapture + 1;
+    const key = boardKey(nextBoard, nextTurn);
+    const counts = new Map(current.positionCounts);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+    const next: PersistedGame = {
+      board: nextBoard,
+      turn: nextTurn,
+      lastMove: move,
+      plySinceLastCapture: nextPlySinceLastCapture,
+      positionCounts: Array.from(counts.entries()),
+    };
+    gameRef.current = next; // stays fresh even if called again before a re-render
+    setGame(next);
+    return true;
   }, []);
 
   const reset = useCallback(() => {
-    setGame(initialGame());
+    const fresh = initialGame();
+    gameRef.current = fresh;
+    setGame(fresh);
     if (persist) clearSavedGame();
   }, [persist]);
 

@@ -114,4 +114,20 @@ describe('useCheckersGame', () => {
     expect(result.current.state.board[10]).toEqual({ color: 'b', kind: 'man' }); // square 11
     expect(result.current.state.board.length).toBe(32);
   });
+
+  it('makeMove returns the correct result for every call, not just the first', () => {
+    const { result } = renderHook(() => useCheckersGame(false));
+    act(() => {
+      expect(result.current.makeMove(11, 15)).toBe(true);
+    });
+    act(() => {
+      expect(result.current.makeMove(24, 20)).toBe(true); // white's known-quiet reply, see Task 8's plan comment
+    });
+    act(() => {
+      expect(result.current.makeMove(11, 99)).toBe(false); // 99 is never a real square target -- illegal
+    });
+    act(() => {
+      expect(result.current.makeMove(9, 13)).toBe(true); // fourth call -- still correct
+    });
+  });
 });
