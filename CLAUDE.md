@@ -180,6 +180,50 @@ lib/checkers/ (additions in the Learning Mode phase)
   useLearningModePreference.ts # persisted (localStorage) Learning Mode
                                 # toggle, same SSR-hydration-safe pattern as
                                 # useCheckersGame
+lib/checkers/ (additions in the Tutorial Hub phase)
+  demoBoards.ts                # squareAt(row, col)/buildBoard(pieces) --
+                               # constructs demo Boards from row/col
+                               # coordinates instead of hand-typed square
+                               # numbers, verified against legalMovesFrom in
+                               # the same task's test before any page renders
+                               # it. Exports six DemoPosition constants:
+                               # MAN_MOVEMENT_DEMO, KING_MOVEMENT_DEMO,
+                               # PROMOTION_DEMO, MANDATORY_CAPTURE_DEMO,
+                               # MULTI_JUMP_DEMO, NO_LEGAL_MOVES_DEMO
+  demoBoards.test.ts           # co-located tests verifying each position's
+                               # legal-move behavior via legalMovesFrom
+components/InteractiveDemo/
+  InteractiveDemo.tsx          # playable single-piece demo -- keeps its own
+                               # state (board + highlighted square) and calls
+                               # straight into legalMovesFrom/applyMove to
+                               # validate/apply clicks. Reuses CheckersBoard's
+                               # click interaction and slide/capture-fade
+                               # animation. `turn` prop is the color OPPOSITE
+                               # the protagonist's, held constant for the whole
+                               # demo (see Conventions: "InteractiveDemo's turn
+                               # prop trick" for why this is load-bearing).
+  InteractiveDemo.test.tsx     # co-located tests
+components/NavCard/
+  NavCard.tsx                  # link card "title + description" -- the hub's
+                               # tile shell, a generic component reused by
+                               # every `/aprender` page
+app/aprender/
+  page.tsx                     # tutorial hub -- displays six NavCard tiles
+                               (aprender/pecas, /regras-especiais, /fim-de-jogo,
+                               /estrategia, /centipawns, /aberturas; the last
+                               is a deliberately temporary 404, scope of a
+                               later phase per Conventions entry below)
+  pecas/page.tsx               # piece movement rules -- interactive demo +
+                               explanatory text
+  regras-especiais/page.tsx    # special rules (promotion, mandatory capture,
+                               multi-jump) -- interactive demos + explanatory
+                               text
+  fim-de-jogo/page.tsx         # end-game conditions (win/loss/draw) --
+                               interactive demos + explanatory text
+  estrategia/page.tsx          # strategy tips -- text-only page, no demos
+  centipawns/page.tsx          # move-quality explainer (what 50-centipawn
+                               loss means) -- text-only page, references
+                               moveExplanation.ts's classifications
 public/
   board/                   # square texture assets for board themes (sakura/
                            # nebulosa/neon) — light/dark pairs, chess-agnostic
@@ -745,6 +789,54 @@ and any future caller that renders the board without reading settings at all.
 Once a later phase wires settings into `/jogar`'s board rendering, it will
 explicitly pass `settings.pieceStyle` and the CheckersBoard default will become
 unreachable in the real app (but harmless to keep around).
+
+### Demo boards use row/col coordinates, not hand-typed square numbers
+
+`lib/checkers/demoBoards.ts` is the first place in the codebase to systematically
+avoid hand-typed checkers square numbers — the existing CLAUDE.md entry "Spec §2's
+compact board notation was never implemented" already flags this as an error-prone
+pattern that caused real defects elsewhere. Every demo position uses `squareAt(row,
+col)` and `buildBoard(pieces)`, which resolve coordinates through the real
+`rowColToSquare` function instead of manually indexing `board[N]`. This pattern
+should be adopted by any future demo/test content that needs to reference board
+positions — never hand-index squares directly when `squareAt()` exists. Every
+named position in `demoBoards.ts` has a corresponding test in `demoBoards.test.ts`
+that asserts its legal-move behavior via `legalMovesFrom` (the real, already-tested
+engine) before any page ever renders it — this is how a hand-designed position gets
+caught if it's wrong.
+
+### `InteractiveDemo`'s `turn` prop is the color OPPOSITE the protagonist's
+
+`components/InteractiveDemo/InteractiveDemo.tsx` passes `CheckersBoard` the turn
+as a color held constant for the whole demo — specifically, the color *opposite*
+the single piece the demo lets the player move. This is load-bearing for animation:
+`CheckersBoard`'s animation effect infers "who just moved" by detecting NOT-`turn`
+in the piece positions between renders. Since only the protagonist ever moves in a
+demo (there's no opponent turn), holding `turn` fixed at the opposite color ensures
+that inference always resolves back to the protagonist's own color, making the
+slide/capture-fade animation fire instead of a hard snap on every demo move.
+
+### `/aprender/aberturas` (the openings/traps trainer) is out of scope for this phase
+
+The hub at `/aprender` links to `/aprender/aberturas` as its sixth tile, but the
+page doesn't exist — it's a deliberately temporary 404 until a later phase (design
+spec §13, phase 7, a separate implementation plan) builds the full openings/traps
+trainer. This matches the tolerance already established for forward-reaching links
+in this codebase (e.g., the home menu's "Aprender a jogar" link to `/aprender`
+existed before this phase was implemented). When phase 7 lands, it will simply
+create the missing route and the link will start working.
+
+### Captured-piece removal in tests requires fake timers to match CheckersBoard's animation
+
+`components/CheckersBoard/CheckersBoard.tsx` keeps captured pieces rendered (with
+`opacity: 0` and `pointer-events: none`) for `CAPTURE_FADE_MS` (300ms) before
+removing them from its internal `fadeOutPieces` state. Any test that clicks a
+capturing move and then asserts on the captured square's removal from the DOM must
+advance past this animation duration using fake timers (`vi.useFakeTimers()` /
+`act(() => vi.advanceTimersByTime(400))` / `vi.useRealTimers()` in a `try/finally`)
+— a synchronous assertion immediately after the click will intermittently or always
+fail, depending on exact timing. See `CheckersBoard.test.tsx`'s own "fades a captured
+piece out and removes it after the fade duration" test for the pattern.
 
 ## Deploy
 
