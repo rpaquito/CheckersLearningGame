@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
-import { afterEach } from 'vitest';
+import { afterEach, beforeEach } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import { __resetSettingsCacheForTests } from '@/lib/settings/useSettings';
 
 // @testing-library/react only auto-registers its afterEach(cleanup) hook in
 // a Jest environment; under Vitest it must be wired up explicitly, or DOM
@@ -25,7 +26,13 @@ if (typeof window !== 'undefined' && jsdomGlobal) {
   });
 }
 
-// NOTE for a later phase: once lib/settings/useSettings.ts exists, add a
-// beforeEach here that clears localStorage, calls
-// __resetSettingsCacheForTests(), and seeds the PT locale — matching Chess
-// Sensei's vitest.setup.ts. Not needed yet — no settings module exists.
+// Clear persisted settings/localStorage before every test so one test's
+// saved settings never leak into the next -- the settings cache is a
+// module singleton (see useSettings.ts), so it survives across `it`s in
+// the same file without this. No locale seeding here (unlike Chess
+// Sensei's setup file) -- no i18n dictionaries exist yet to select
+// between.
+beforeEach(() => {
+  window.localStorage.clear();
+  __resetSettingsCacheForTests();
+});
