@@ -1,11 +1,40 @@
 @import "tailwindcss";
 
+/* "Anime" visual identity (design spec §8) -- ported from Chess Sensei's
+   redesign. Always dark, doesn't depend on prefers-color-scheme -- there is
+   no light variant of this app. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #1A0B33;
+  --foreground: #FFF6EE;
+
+  /* Named palette -- distinct names so they don't collide with Tailwind's
+     own default palette (stone/sky/emerald/etc.), which some earlier,
+     pre-redesign code in this repo may still use. */
+  --color-ink: #1A0B33;
+  --color-ink-soft: #241246;
+  --color-cyan: #00E5FF;
+  --color-pink: #FF6FA5;
+  --color-gold: #FFD600;
+  --color-purple: #7B3FA0;
+  --color-lilac: #E8D9FF;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-cyan: var(--color-cyan);
+  --color-pink: var(--color-pink);
+  --color-gold: var(--color-gold);
+  --color-purple: var(--color-purple);
+  --color-lilac: var(--color-lilac);
+  --font-sans: var(--font-poppins);
+  --font-display: var(--font-bangers);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: var(--font-poppins), system-ui, sans-serif;
 }
