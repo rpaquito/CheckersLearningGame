@@ -209,8 +209,9 @@ components/NavCard/
                                # every `/aprender` page
 app/aprender/
   page.tsx                     # tutorial hub -- displays six NavCard tiles
-                               (aprender/pecas, /regras-especiais, /fim-de-jogo,
-                               /estrategia, /centipawns, /aberturas; the last
+                               (/aprender/pecas, /aprender/regras-especiais,
+                               /aprender/fim-de-jogo, /aprender/estrategia,
+                               /aprender/centipawns, /aprender/aberturas; the last
                                is a deliberately temporary 404, scope of a
                                later phase per Conventions entry below)
   pecas/page.tsx               # piece movement rules -- interactive demo +
