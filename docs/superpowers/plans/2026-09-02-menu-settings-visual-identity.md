@@ -1212,8 +1212,8 @@ git push origin main
 **Interfaces:**
 - Produces: `useSettings(): { settings: Settings; updateSettings:
   (partial: Partial<Settings>) => void }`, `__resetSettingsCacheForTests()`
-  (test-only export). Consumed by Task 9 is not required (`CheckersBoard`
-  itself stays settings-agnostic), Task 10 (`/`), Task 11 (`/opcoes`), Task
+  (test-only export). NOT consumed by Task 9 (`CheckersBoard` itself stays
+  settings-agnostic) — consumed by Task 10 (`/`), Task 11 (`/opcoes`), Task
   12 (`/configurar`).
 
 Verbatim port of the `useSyncExternalStore` singleton pattern — no
