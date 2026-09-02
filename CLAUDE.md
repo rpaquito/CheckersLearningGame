@@ -204,15 +204,16 @@ components/InteractiveDemo/
                                # prop trick" for why this is load-bearing).
   InteractiveDemo.test.tsx     # co-located tests
 components/NavCard/
-  NavCard.tsx                  # link card "title + description" -- the hub's
-                               # tile shell
+  NavCard.tsx                  # link card "title + description [+ meta]" --
+                               # the hub's tile shell. `meta` was deliberately
+                               # omitted when this component was first built
+                               # (Tutorial Hub phase); this phase restores it
+                               # (Conventions: NavCard meta prop precedent)
 app/aprender/
   page.tsx                     # tutorial hub -- displays six NavCard tiles
                                (/aprender/pecas, /aprender/regras-especiais,
                                /aprender/fim-de-jogo, /aprender/estrategia,
-                               /aprender/centipawns, /aprender/aberturas; the last
-                               is a deliberately temporary 404, scope of a
-                               later phase per Conventions entry below)
+                               /aprender/centipawns, /aprender/aberturas)
   pecas/page.tsx               # piece movement rules -- interactive demo +
                                explanatory text
   regras-especiais/page.tsx    # special rules (mandatory capture, multi-jump)
@@ -224,6 +225,64 @@ app/aprender/
                                badge system using the checkers material
                                scale) -- text-only page, references
                                MoveQuality type from moveClassification.ts
+  aberturas/
+    page.tsx                   # openings trainer hub -- displays one NavCard
+                               tile per opening in OPENINGS
+    [id]/page.tsx              # study mode -- step through an opening line with
+                               explanations using OpeningStudy; `id` is the
+                               opening's id from lib/openings/data.ts
+    [id]/praticar/page.tsx     # practice mode -- play an opening line yourself
+                               against an auto-playing opponent using
+                               OpeningPractice
+lib/openings/ (additions in the Openings & Traps Trainer phase)
+  types.ts                   # Locale, OpeningMove/OpeningLine/Opening types;
+                             # Locale ('pt'|'en') is defined locally here,
+                             # independent of other Locale definitions until
+                             # Phase 8 folds them into a shared i18n module
+  replayLine.ts              # replayLine(line: OpeningLine): ReplayedMove[] --
+                             # replays a line from the initial position using
+                             # the real legalMovesFrom/applyMove engine,
+                             # enabling both the study/practice UIs to get
+                             # board states and guaranteeing every line in
+                             # data.ts is legally valid
+  replayLine.test.ts         # co-located tests
+  data.ts                    # OPENINGS: 8 real-named checkers openings (see
+                             # Conventions) with one main line each, every
+                             # move validated by data.test.ts before commit;
+                             # each line uses numeric checkers notation
+                             # ("11-15"), not chess's SAN
+  data.test.ts               # replays every opening line via replayLine to
+                             # verify legality; catches hand-authoring errors
+                             # before any page renders the data
+components/LineTabs/
+  LineTabs.tsx               # tabbed widget for selecting among an opening's
+                             # lines (currently all openings have exactly one
+                             # line per Constraints, but the component is
+                             # structured for future multi-line support)
+components/OpeningPageHeader/
+  OpeningPageHeader.tsx      # page header for study/practice pages, displays
+                             # opening name + description bilingual (from
+                             # data.ts) but reads `.pt` half only for display
+                             # (no locale toggle exists until Phase 8)
+components/OpeningStudy/
+  OpeningStudy.tsx           # study mode -- step through an opening line via
+                             # prev/next buttons, displaying the board state,
+                             # move notation, and move explanation; ported from
+                             # Chess Sensei's OpeningStudy, adapted to
+                             # checkers' Board/Square/CheckersBoard instead of
+                             # chess.js/FEN/ChessBoard; plain Tailwind, no
+                             # boardTheme/pieceStyle props wired (matching
+                             # /jogar's current state per Constraints)
+  OpeningStudy.test.tsx      # co-located tests
+components/OpeningPractice/
+  OpeningPractice.tsx        # practice mode -- play an opening line yourself
+                             # from the position after each move in the line,
+                             # with an auto-playing opponent handling White's
+                             # moves; ported from Chess Sensei's
+                             # OpeningPractice, adapted to checkers;
+                             # protagonist is always black per Constraints (no
+                             # White-system/Black-defense split like chess)
+  OpeningPractice.test.tsx   # co-located tests
 public/
   board/                   # square texture assets for board themes (sakura/
                            # nebulosa/neon) — light/dark pairs, chess-agnostic
@@ -816,15 +875,76 @@ demo (there's no opponent turn), holding `turn` fixed at the opposite color ensu
 that inference always resolves back to the protagonist's own color, making the
 slide/capture-fade animation fire instead of a hard snap on every demo move.
 
-### `/aprender/aberturas` (the openings/traps trainer) is out of scope for this phase
+### Openings/traps trainer scope: 8 openings, one line each, hand-verified theory + generic development
 
-The hub at `/aprender` links to `/aprender/aberturas` as its sixth tile, but the
-page doesn't exist — it's a deliberately temporary 404 until a later phase (design
-spec §13, phase 7, a separate implementation plan) builds the full openings/traps
-trainer. This matches the tolerance already established for forward-reaching links
-in this codebase (e.g., the home menu's "Aprender a jogar" link to `/aprender`
-existed before this phase was implemented). When phase 7 lands, it will simply
-create the missing route and the link will start working.
+`lib/openings/data.ts` contains 8 real-named checkers openings (`old-fourteenth`,
+`single-corner`, `defiance`, `alma`, `cross`, `switcher`, `double-corner`,
+`laird-and-lady`) with exactly one main line per opening. This was a deliberate,
+user-confirmed scope reduction from the design spec's suggestion of "8-12 openings
+with main-line + 1-2 named variations": hand-authoring accurate, engine-validated
+checkers opening theory is real content work. What this plan actually delivers is:
+each opening's *first move* (checkers openings are genuinely classified primarily
+by which of Black's 7 legal opening moves is played — a documented fact already
+asserted as a test in `moveGeneration.test.ts`) and *defining second move* (the
+reply that gives the named system its character) are real theory, hand-verified
+safe during planning; the remaining 4 moves per line follow a generic, structurally-safe
+"develop a second piece, fill the gap left behind" pattern rather than reproducing
+exact textbook continuations from memory. Every move in every line has been validated
+against the actual rules engine via `lib/openings/data.test.ts` before commit —
+a test failure during Task 2 is expected, normal work (see Global Constraints
+in the plan), not a blocker. Extending to more openings or more variations per
+opening is real, well-scoped future content work.
+
+### Opening names are loanwords, never translated
+
+Every opening in `lib/openings/data.ts` has `name.pt === name.en` (e.g., both
+are `'Old Fourteenth'`, not `'Old Fourteenth'` / `'A Décima Quarta Antiga'`).
+This is correct for the medium: opening names are proper nouns / historical
+loanwords that stay identical in Portuguese checkers literature, exactly like
+"Najdorf" stays "Najdorf" in Portuguese chess writing. Future additions to the
+openings list should give a new opening's `name.pt` the same value as its
+`name.en` unless it's a genuinely PT-and-EN-legitimately-different case (unlikely
+for checkers openings). Any bilingual-content test that asserts "must differ
+across locales" should except proper-noun loanwords, following chess's own
+precedent — `data.test.ts` asserts `description.en !== description.pt` (those
+are free-written prose) but not name inequality.
+
+### Each opening's first move must be unique across the list, with one documented exception
+
+Checkers openings are classified BY which of Black's 7 legal opening moves is
+played — a documented fact of real checkers theory (already verified in a test:
+`moveGeneration.test.ts` asserts exactly 7 legal first moves). Each opening in
+`OPENINGS` should have a unique `notation:` value for its move 1 (the first move
+in its first line), with exactly one deliberate exception: `old-fourteenth` and
+`single-corner` both intentionally start with `'11-15'`, differentiated only by
+White's reply. This mirrors real checkers theory, where multiple named systems
+branch from the same most-popular first move. A move-1 change should never be
+"required" by the legality test (move 1 from the initial position is always legal —
+one of exactly 7 guaranteed options) — if a future content-editing pass ever
+changes a move-1, that's a deliberate design decision, not a bug fix, and must
+be checked against every other opening's move-1 for a collision or intention.
+
+### Checkers openings depart from Chess Sensei's precedent in three ways
+
+1. **No `eco` field**: American checkers has no ECO-equivalent universal
+   classification code — `Opening`/`OpeningLine`/`OpeningMove` have no `eco`
+   property (unlike Chess Sensei's data shape). This is a deliberate difference
+   from chess, not an oversight (design spec §6).
+
+2. **Protagonist is always black**: Unlike chess (which splits openings into
+   White systems and Black defenses, branching `protagonistColorFor` on the
+   opening's `id` prefix), every checkers opening is defined by Black's own
+   first move (the side that always moves first in checkers). `OpeningPractice`'s
+   protagonist is hardcoded to `'b'` — do not port chess's
+   `protagonistColorFor` function; there is no checkers equivalent.
+
+3. **CheckersBoard has no orientation/flip prop**: Unlike chess's `ChessBoard`,
+   `CheckersBoard` has no `orientation` prop and renders the board exactly as
+   it already does today, with fixed orientation (Black at top, White at bottom).
+   Both `OpeningStudy`/`OpeningPractice` pass only the board state to
+   `CheckersBoard`, never any theme/style props — matching `/jogar`'s current,
+   documented, still-unwired state (per Conventions: `CheckersBoard`'s theme
+   props exist since Phase 5 but no page wires real `Settings` values yet).
 
 ### Captured-piece removal in tests requires fake timers to match CheckersBoard's animation
 
