@@ -1,3 +1,4 @@
+import { detectLocale } from '@/lib/i18n/detectLocale';
 import type { Difficulty } from '@/lib/checkers/difficulty';
 import type { PlayerColor } from '@/lib/checkers/playerColor';
 
@@ -50,6 +51,10 @@ function pickValid<T extends string>(value: unknown, valid: readonly T[], fallba
     : fallback;
 }
 
+function resolveInitialLocale(): Locale {
+  return detectLocale(typeof navigator !== 'undefined' ? navigator.language : undefined);
+}
+
 /**
  * Reads settings saved in localStorage. Missing, corrupted, or
  * old-shaped data falls back to defaults field-by-field -- one invalid
@@ -64,7 +69,11 @@ export function loadSettings(): Settings {
     const candidate: Record<string, unknown> =
       typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : {};
 
-    return {
+    const languageWasStored =
+      typeof candidate.language === 'string' && (VALID_LOCALES as readonly string[]).includes(candidate.language);
+    const language = languageWasStored ? (candidate.language as Locale) : resolveInitialLocale();
+
+    const result: Settings = {
       defaultDifficulty: pickValid(
         candidate.defaultDifficulty,
         VALID_DIFFICULTIES,
@@ -78,10 +87,16 @@ export function loadSettings(): Settings {
         DEFAULT_SETTINGS.backgroundTheme
       ),
       pieceStyle: pickValid(candidate.pieceStyle, VALID_PIECE_STYLES, DEFAULT_SETTINGS.pieceStyle),
-      language: pickValid(candidate.language, VALID_LOCALES, DEFAULT_SETTINGS.language),
+      language,
     };
+
+    // Only saves if detection actually ran (language wasn't already
+    // stored) -- doesn't re-write on every load once a real value exists.
+    if (!languageWasStored) saveSettings(result);
+
+    return result;
   } catch {
-    return DEFAULT_SETTINGS;
+    return { ...DEFAULT_SETTINGS, language: resolveInitialLocale() };
   }
 }
 

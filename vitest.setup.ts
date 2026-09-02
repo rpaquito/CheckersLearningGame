@@ -26,13 +26,14 @@ if (typeof window !== 'undefined' && jsdomGlobal) {
   });
 }
 
-// Clear persisted settings/localStorage before every test so one test's
-// saved settings never leak into the next -- the settings cache is a
-// module singleton (see useSettings.ts), so it survives across `it`s in
-// the same file without this. No locale seeding here (unlike Chess
-// Sensei's setup file) -- no i18n dictionaries exist yet to select
-// between.
+// Seeds a saved 'pt' language for every test, so any component using
+// useTranslation() (once Plan 8b wires it up) renders the PT dictionary
+// by default -- matching the hardcoded PT text nearly every existing test
+// in this repo already asserts. Without this, jsdom's own default
+// navigator.language ('en-US') would make the new auto-detection in
+// settings.ts resolve every test's language to 'en' instead.
 beforeEach(() => {
   window.localStorage.clear();
   __resetSettingsCacheForTests();
+  window.localStorage.setItem('checkers-settings', JSON.stringify({ language: 'pt' }));
 });

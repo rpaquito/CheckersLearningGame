@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { loadSettings, saveSettings, DEFAULT_SETTINGS } from './settings';
 
 const STORAGE_KEY = 'checkers-settings';
@@ -6,6 +6,9 @@ const STORAGE_KEY = 'checkers-settings';
 describe('loadSettings', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    // Stub navigator to Portuguese so detection returns 'pt' when localStorage is empty
+    // (matching the behavior these tests expected before auto-detection was added)
+    vi.stubGlobal('navigator', { language: 'pt-PT' });
   });
 
   it('returns the defaults when nothing is saved', () => {
@@ -80,6 +83,54 @@ describe('loadSettings', () => {
   it('falls back to the default language when the saved value is invalid', () => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...DEFAULT_SETTINGS, language: 'fr' }));
     expect(loadSettings().language).toBe('pt');
+  });
+});
+
+describe('loadSettings — language auto-detection', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('detects and saves the language when nothing is saved yet', () => {
+    vi.stubGlobal('navigator', { language: 'en-US' });
+    const settings = loadSettings();
+    expect(settings.language).toBe('en');
+    const saved = JSON.parse(window.localStorage.getItem('checkers-settings')!);
+    expect(saved.language).toBe('en');
+  });
+
+  it('detects Portuguese when the browser asks for Portuguese', () => {
+    vi.stubGlobal('navigator', { language: 'pt-PT' });
+    expect(loadSettings().language).toBe('pt');
+  });
+
+  it('uses the saved language without detecting again', () => {
+    window.localStorage.setItem('checkers-settings', JSON.stringify({ language: 'en' }));
+    vi.stubGlobal('navigator', { language: 'pt-PT' }); // detection would say 'pt' -- must not be used
+    expect(loadSettings().language).toBe('en');
+  });
+
+  it('treats an invalid saved language as missing', () => {
+    window.localStorage.setItem('checkers-settings', JSON.stringify({ language: 'fr' }));
+    vi.stubGlobal('navigator', { language: 'pt-PT' });
+    expect(loadSettings().language).toBe('pt');
+  });
+
+  it('detects on an installation from before this feature, preserving other already-saved fields', () => {
+    window.localStorage.setItem(
+      'checkers-settings',
+      JSON.stringify({ defaultDifficulty: 'dificil', pieceStyle: 'anime' })
+    );
+    vi.stubGlobal('navigator', { language: 'pt-PT' });
+
+    const settings = loadSettings();
+    expect(settings.language).toBe('pt');
+    expect(settings.defaultDifficulty).toBe('dificil');
+    expect(settings.pieceStyle).toBe('anime');
+
+    const saved = JSON.parse(window.localStorage.getItem('checkers-settings')!);
+    expect(saved.defaultDifficulty).toBe('dificil');
+    expect(saved.pieceStyle).toBe('anime');
   });
 });
 

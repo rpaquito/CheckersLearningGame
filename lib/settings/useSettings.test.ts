@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { useSettings, __resetSettingsCacheForTests } from './useSettings';
 import { DEFAULT_SETTINGS, loadSettings } from './settings';
@@ -7,6 +7,8 @@ describe('useSettings', () => {
   beforeEach(() => {
     window.localStorage.clear();
     __resetSettingsCacheForTests();
+    // Stub navigator to Portuguese so detection returns 'pt' when localStorage is empty
+    vi.stubGlobal('navigator', { language: 'pt-PT' });
   });
 
   it('starts from the defaults when nothing is saved', () => {
