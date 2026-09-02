@@ -206,3 +206,61 @@ describe('CheckersBoard animation', () => {
     expect(container.querySelectorAll('[data-square]')).toHaveLength(0);
   });
 });
+
+describe('CheckersBoard theming', () => {
+  it('uses the nebulosa board theme by default', () => {
+    const { container } = render(
+      <CheckersBoard
+        board={createInitialBoard()}
+        turn="b"
+        selectedSquare={null}
+        legalTargets={[]}
+        mandatoryCaptureSquares={[]}
+        lastMove={null}
+      />,
+    );
+    const square1 = container.querySelector('[aria-label="square 1"]') as HTMLElement;
+    expect(square1.style.backgroundImage).toContain('nebulosa-dark-square.webp');
+  });
+
+  it('renders the requested board theme', () => {
+    const { container } = render(
+      <CheckersBoard
+        board={createInitialBoard()}
+        turn="b"
+        selectedSquare={null}
+        legalTargets={[]}
+        mandatoryCaptureSquares={[]}
+        lastMove={null}
+        boardTheme="neon"
+      />,
+    );
+    const square1 = container.querySelector('[aria-label="square 1"]') as HTMLElement;
+    expect(square1.style.backgroundImage).toContain('neon-dark-square.webp');
+  });
+
+  it('passes pieceStyle through to the rendered pieces', () => {
+    const { container: classico } = render(
+      <CheckersBoard
+        board={createInitialBoard()}
+        turn="b"
+        selectedSquare={null}
+        legalTargets={[]}
+        mandatoryCaptureSquares={[]}
+        lastMove={null}
+      />,
+    );
+    const { container: moderno } = render(
+      <CheckersBoard
+        board={createInitialBoard()}
+        turn="b"
+        selectedSquare={null}
+        legalTargets={[]}
+        mandatoryCaptureSquares={[]}
+        lastMove={null}
+        pieceStyle="moderno"
+      />,
+    );
+    expect(classico.querySelector('svg')?.innerHTML).not.toBe(moderno.querySelector('svg')?.innerHTML);
+  });
+});

@@ -3,8 +3,10 @@
 import type { ReactElement } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { Board, CheckersMove, Color, PieceKind, Square } from '@/lib/checkers/types';
+import type { BoardTheme, PieceStyle } from '@/lib/settings/settings';
 import { rowColToSquare, squareToRowCol } from '@/lib/checkers/board';
 import { inferMove } from '@/lib/checkers/inferMove';
+import { BOARD_THEMES } from '@/lib/settings/themes';
 import { PieceIcon } from './PieceIcon';
 
 export interface CheckersBoardProps {
@@ -16,6 +18,8 @@ export interface CheckersBoardProps {
   lastMove: CheckersMove | null;
   suggestedMove?: CheckersMove | null;
   interactive?: boolean;
+  boardTheme?: BoardTheme;
+  pieceStyle?: PieceStyle;
   onSquareClick?: (square: Square) => void;
 }
 
@@ -47,6 +51,8 @@ export function CheckersBoard({
   lastMove,
   suggestedMove = null,
   interactive = true,
+  boardTheme = 'nebulosa',
+  pieceStyle = 'classico',
   onSquareClick,
 }: CheckersBoardProps): ReactElement {
   const [displayPieces, setDisplayPieces] = useState<DisplayPiece[]>(() => initialDisplayPieces(board));
@@ -91,7 +97,14 @@ export function CheckersBoard({
     for (let col = 0; col < 8; col++) {
       const square = rowColToSquare(row, col);
       if (square === null) {
-        squares.push(<div key={`light-${row}-${col}`} className="bg-stone-200" aria-hidden="true" />);
+        squares.push(
+          <div
+            key={`light-${row}-${col}`}
+            className="bg-cover bg-center"
+            style={{ backgroundImage: `url(${BOARD_THEMES[boardTheme].light})` }}
+            aria-hidden="true"
+          />,
+        );
         continue;
       }
       const isSelected = square === selectedSquare;
@@ -106,8 +119,9 @@ export function CheckersBoard({
           disabled={!interactive}
           onClick={() => onSquareClick?.(square)}
           aria-label={`square ${square}`}
+          style={{ backgroundImage: `url(${BOARD_THEMES[boardTheme].dark})` }}
           className={[
-            'relative aspect-square min-h-0 min-w-0 overflow-hidden bg-stone-700',
+            'relative aspect-square min-h-0 min-w-0 overflow-hidden bg-cover bg-center',
             isLastMove ? 'ring-4 ring-yellow-400' : '',
             isSelected ? 'outline outline-4 outline-sky-500' : '',
             isMandatory ? 'outline outline-4 outline-amber-400' : '',
@@ -141,7 +155,7 @@ export function CheckersBoard({
               ].join(' ')}
               style={{ left: `${col * 12.5}%`, top: `${row * 12.5}%`, width: '12.5%', height: '12.5%' }}
             >
-              <PieceIcon type={piece.kind} />
+              <PieceIcon type={piece.kind} style={pieceStyle} />
             </div>
           );
         })}
