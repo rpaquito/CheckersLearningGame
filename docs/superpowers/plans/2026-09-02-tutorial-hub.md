@@ -777,8 +777,8 @@ requirement as Task 5's test.
 - [ ] **Step 1: Write the test**
 
 ```tsx
-import { describe, expect, it } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { squareAt } from '@/lib/checkers/demoBoards';
 import RegrasEspeciaisPage from './page';
 
@@ -801,26 +801,49 @@ describe('RegrasEspeciaisPage', () => {
     expect(legalTargetButtons(section)).toHaveLength(1);
   });
 
+  // CheckersBoard keeps a captured piece in the DOM (fading out) for
+  // CAPTURE_FADE_MS=300ms before actually removing it -- fake timers and
+  // an explicit advance past that duration are required before asserting
+  // removal, same pattern as CheckersBoard.test.tsx's own capture-fade
+  // test. (This was NOT part of the original plan text -- Task 6's
+  // implementation surfaced the gap and this was the ruled fix; kept here
+  // so the plan matches what was actually built.)
   it('captures the jumped piece when the mandatory-capture demo target is clicked', () => {
-    render(<RegrasEspeciaisPage />);
-    const section = demoSection('Captura obrigatória');
-    const landing = squareAt(4, 3);
-    const jumpedSquare = squareAt(3, 2);
-    fireEvent.click(section.querySelector(`[aria-label="square ${landing}"]`) as HTMLButtonElement);
-    expect(section.querySelector(`[data-square="${landing}"]`)).not.toBeNull();
-    expect(section.querySelector(`[data-square="${jumpedSquare}"]`)).toBeNull();
+    vi.useFakeTimers();
+    try {
+      render(<RegrasEspeciaisPage />);
+      const section = demoSection('Captura obrigatória');
+      const landing = squareAt(4, 3);
+      const jumpedSquare = squareAt(3, 2);
+      fireEvent.click(section.querySelector(`[aria-label="square ${landing}"]`) as HTMLButtonElement);
+      expect(section.querySelector(`[data-square="${landing}"]`)).not.toBeNull();
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+      expect(section.querySelector(`[data-square="${jumpedSquare}"]`)).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('captures both pieces in the multi-jump demo with a single click', () => {
-    render(<RegrasEspeciaisPage />);
-    const section = demoSection('Sequência de capturas (lance múltiplo)');
-    const finalLanding = squareAt(4, 5);
-    const firstJumped = squareAt(1, 2);
-    const secondJumped = squareAt(3, 4);
-    fireEvent.click(section.querySelector(`[aria-label="square ${finalLanding}"]`) as HTMLButtonElement);
-    expect(section.querySelector(`[data-square="${finalLanding}"]`)).not.toBeNull();
-    expect(section.querySelector(`[data-square="${firstJumped}"]`)).toBeNull();
-    expect(section.querySelector(`[data-square="${secondJumped}"]`)).toBeNull();
+    vi.useFakeTimers();
+    try {
+      render(<RegrasEspeciaisPage />);
+      const section = demoSection('Sequência de capturas (lance múltiplo)');
+      const finalLanding = squareAt(4, 5);
+      const firstJumped = squareAt(1, 2);
+      const secondJumped = squareAt(3, 4);
+      fireEvent.click(section.querySelector(`[aria-label="square ${finalLanding}"]`) as HTMLButtonElement);
+      expect(section.querySelector(`[data-square="${finalLanding}"]`)).not.toBeNull();
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+      expect(section.querySelector(`[data-square="${firstJumped}"]`)).toBeNull();
+      expect(section.querySelector(`[data-square="${secondJumped}"]`)).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 ```
