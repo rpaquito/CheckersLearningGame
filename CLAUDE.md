@@ -111,10 +111,27 @@ lib/ui/
                           # checkers dependency, ported unchanged
   activeToggleStyle.ts   # shared "active" gradient for toggle-style selection
                          # groups (difficulty/color in /configurar and /opcoes)
+lib/i18n/ (additions in the i18n Mechanism & Dictionary plan)
+  types.ts               # Locale ('pt' | 'en'), VALID_LOCALES; canonical
+                         # version going forward for i18n (others still declared
+                         # locally; Phase 8 deferred consolidation, see Conventions)
+  detectLocale.ts        # detectLocale(navigatorLanguage?: string): Locale --
+                         # browser-language detection falling back to English
+  useTranslation.ts      # useTranslation() hook returning {t: Dictionary, locale}
+                         # from useSettings().settings.language; no new Context
+  dictionaries/
+    types.ts             # Dictionary interface defining every key path
+    pt.ts                # complete Portuguese dictionary (all pages/modals built so far)
+    en.ts                # complete English translation
+    index.ts             # DICTIONARIES: Record<Locale, Dictionary> re-export
 lib/settings/
   settings.ts            # Settings interface (defaultDifficulty/defaultColor/
                          # boardTheme/backgroundTheme/pieceStyle/language) and
-                         # DEFAULT_SETTINGS; validation and storage key
+                         # DEFAULT_SETTINGS; validation and storage key. Now
+                         # includes detectLocale integration: language field uses
+                         # browser-language auto-detection on first load (resolving
+                         # to 'en' if detection can't determine 'pt'), then
+                         # persists so detection only runs once per installation
   themes.ts              # BOARD_THEMES (sakura/nebulosa/neon) and
                          # BACKGROUND_THEMES (templo/dojo/cosmico) registries;
                          # includes fallbackGradient for background images
@@ -959,6 +976,71 @@ in a `try/finally`) — a synchronous assertion immediately after the click will
 intermittently or always fail, depending on exact timing. See `CheckersBoard.test.tsx`'s
 own "fades a captured piece out and removes it after the fade duration" test for the
 pattern.
+
+### Phase 8 (i18n) was deliberately split into two plans: mechanism+dictionary now, UI retrofit later
+
+This plan (`i18n Mechanism & Dictionary`) delivers `lib/i18n/` and a complete PT/EN
+dictionary covering every hardcoded string in pages/components built through Phase 7.
+A deliberate follow-up plan ("Plan 8b") will retrofit every existing page and component
+to actually call `useTranslation()` instead of hardcoded Portuguese — the same "built
+but not wired up yet" pattern this project used for earlier groundwork phases
+(e.g., `RulesModal` added before it was linked anywhere). **No page or component in this
+repo actually uses the dictionary yet** — `useSettings().settings.language` can be changed
+(e.g., via a future `/opcoes` language toggle in Plan 8b) with zero visible effect until
+that retrofit plan lands. The dictionary is fully validated and complete; it's just not
+consumed anywhere yet.
+
+### Global test-locale seed: vitest.setup.ts seeds Portuguese before every test
+
+`vitest.setup.ts`'s `beforeEach` now calls `window.localStorage.setItem('checkers-settings',
+JSON.stringify({ language: 'pt' }))` before every test in the whole repo. This is load-bearing:
+with `Settings.language` now having real browser-based auto-detection (`detectLocale`), any
+existing test that asserts hardcoded Portuguese text would otherwise fail under `jsdom`'s
+default `navigator.language` (`'en-US'`), which would auto-resolve to `'en'`. The seed ensures
+every test that doesn't explicitly override `language` gets Portuguese by default, keeping
+all existing tests passing once Plan 8b swaps hardcoded strings for `useTranslation()` calls.
+Any future test needing to exercise the English dictionary must explicitly call
+`saveSettings({ ..., language: 'en' })` or stub `navigator.language` to `'pt-PT'` before
+calling `loadSettings()` directly, rather than relying on the global seed default.
+
+### `Locale` type duplication is intentional, for now
+
+`lib/i18n/types.ts` declares the canonical `Locale = 'pt' | 'en'` going forward. However,
+`lib/checkers/moveExplanation.ts`, `lib/settings/settings.ts`, and `lib/openings/types.ts`
+each still declare their own, structurally-identical `Locale` locally (a pattern each of
+those phases' own CLAUDE.md entries already documented as deliberate, decoupled-until-i18n-exists).
+Now that `lib/i18n/types.ts` exists, consolidating them onto this canonical version is
+legitimate future cleanup — but not required by anything in this plan or Plan 8b, since
+TypeScript's structural typing makes the duplicates fully interchangeable without any import
+changes. Each module that declares its own `Locale` has a comment explaining the reasoning;
+they can fold into `lib/i18n/types.ts` later without breaking any call sites.
+
+### Four dictionary values are identical by design: language names and loanwords
+
+`lib/i18n/dictionaries/dictionaries.test.ts` documents an exception set of four leaf keys
+where PT and EN text is deliberately identical: `opcoes.portuguese` ("Português"),
+`opcoes.english` ("English"), `menu.title` ("Checkers Sensei"), and `pieceStyleLabel.anime`
+("Anime"). The first two match real-world convention: a language switcher's option labels
+conventionally display each language's name in itself, not translated. `menu.title` is the
+app's own brand name, unchanged in both languages. `pieceStyleLabel.anime` is an established
+loanword in Portuguese (and kept in both dictionaries for consistency), same as the openings
+trainer's international opening names which also stay identical across locales. Every other
+string pair differs genuinely between locales; the test asserts this with the exception set
+explicitly documented.
+
+### `lib/settings/useSettings.test.ts` stubs `navigator` because `localStorage.clear()` requires it
+
+`lib/settings/useSettings.test.ts` has a module-local `beforeEach` that stubs `navigator` to
+`{ language: 'pt-PT' }` via `vi.stubGlobal('navigator', ...)`. This is necessary because the
+global `vitest.setup.ts` `beforeEach` clears `localStorage` before every test, and with auto-detection
+now wired into `Settings.language`, calling `loadSettings()` on empty localStorage would
+otherwise use `jsdom`'s default `navigator.language` to detect — which is `'en-US'`, giving
+every test an English locale by default instead of Portuguese. The stub in this test file
+ensures that tests in `useSettings.test.ts` specifically, which exercise `loadSettings()`
+on empty storage and depend on language being `'pt'`, get the right value without relying
+on the global seed (which can't pre-populate saved `language` for this file's own
+language-detection tests). This pattern is specific to this file because it's testing the
+very detection logic; other test files rely only on the global seed and needn't stub anything.
 
 ## Deploy
 
