@@ -218,7 +218,7 @@ app/aprender/
   regras-especiais/page.tsx    # special rules (mandatory capture, multi-jump)
                                -- interactive demos + explanatory text
   fim-de-jogo/page.tsx         # end-game conditions (win/loss/draw) --
-                               interactive demos + explanatory text
+                               one interactive demo + explanatory text
   estrategia/page.tsx          # strategy tips -- text-only page, no demos
   centipawns/page.tsx          # move-quality explainer (engine-evaluation
                                badge system using the checkers material
