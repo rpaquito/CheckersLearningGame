@@ -6,6 +6,7 @@ import { useState } from 'react';
 import type { Difficulty } from '@/lib/checkers/difficulty';
 import { resolvePlayerColor, type PlayerColor } from '@/lib/checkers/playerColor';
 import { clearSavedGame } from '@/lib/checkers/useCheckersGame';
+import { useSettings } from '@/lib/settings/useSettings';
 
 const DIFFICULTY_OPTIONS: { value: Difficulty; label: string }[] = [
   { value: 'facil', label: 'Fácil' },
@@ -21,8 +22,9 @@ const COLOR_OPTIONS: { value: PlayerColor; label: string }[] = [
 
 export default function ConfigurarPage() {
   const router = useRouter();
-  const [difficulty, setDifficulty] = useState<Difficulty>('medio');
-  const [color, setColor] = useState<PlayerColor>('b');
+  const { settings } = useSettings();
+  const [difficulty, setDifficulty] = useState<Difficulty>(settings.defaultDifficulty);
+  const [color, setColor] = useState<PlayerColor>(settings.defaultColor);
 
   function handleStart() {
     clearSavedGame();

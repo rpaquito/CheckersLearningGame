@@ -22,8 +22,8 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  defaultDifficulty: 'facil',
-  defaultColor: 'w',
+  defaultDifficulty: 'medio',
+  defaultColor: 'b',
   boardTheme: 'nebulosa',
   backgroundTheme: 'templo',
   pieceStyle: 'anime',
