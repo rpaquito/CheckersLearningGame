@@ -5,6 +5,12 @@ import type { WorkerRequest, WorkerResponse } from './checkersEngine.worker';
 export interface CheckersEngineClient {
   getBestMove: (board: Board, turn: Color, options: EngineOptions) => Promise<CheckersMove>;
   evaluate: (board: Board, turn: Color, depth: number) => Promise<number>;
+  gradeMove: (
+    board: Board,
+    turn: Color,
+    move: CheckersMove,
+    depth: number
+  ) => Promise<{ bestScore: number; playedScore: number }>;
   terminate: () => void;
 }
 
@@ -171,6 +177,21 @@ export function createCheckersEngineClient(createWorker: () => WorkerLike = crea
     );
   }
 
+  async function gradeMove(
+    board: Board,
+    turn: Color,
+    move: CheckersMove,
+    depth: number
+  ): Promise<{ bestScore: number; playedScore: number }> {
+    return enqueue<{ bestScore: number; playedScore: number }>(
+      { type: 'gradeMove', board, turn, move, depth },
+      (response) =>
+        response.type === 'moveGrade'
+          ? { value: { bestScore: response.bestScore, playedScore: response.playedScore } }
+          : undefined
+    );
+  }
+
   function terminate() {
     if (terminated) return;
     terminated = true;
@@ -187,5 +208,5 @@ export function createCheckersEngineClient(createWorker: () => WorkerLike = crea
     for (const entry of queued) entry.fail(reason);
   }
 
-  return { getBestMove, evaluate, terminate };
+  return { getBestMove, evaluate, gradeMove, terminate };
 }

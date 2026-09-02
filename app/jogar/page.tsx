@@ -184,10 +184,12 @@ function JogarPageInner() {
     if (!engine) return;
     const move = state.lastMove;
     if (!move) return;
+    // Still needed for describeMoveForToast's own explainMove() logic (e.g.
+    // detecting "hangs a piece" on the resulting position) -- unrelated to
+    // grading itself, which now only ever searches from boardBeforeMove.
     const boardAfterMove = state.board;
-    const opponentColor: Color = pending.moverColor === 'b' ? 'w' : 'b';
 
-    gradeMove(engine, pending.boardBeforeMove, pending.moverColor, boardAfterMove, opponentColor)
+    gradeMove(engine, pending.boardBeforeMove, pending.moverColor, move)
       .then(({ quality, loss }) => {
         if (!mountedRef.current) return;
         const message = describeMoveForToast({
@@ -326,7 +328,7 @@ function JogarPageInner() {
         legalTargets={legalTargets}
         mandatoryCaptureSquares={state.mandatoryCaptureSquares}
         lastMove={state.lastMove}
-        suggestedMove={suggestedMove}
+        suggestedMove={learningModeEnabled ? suggestedMove : null}
         interactive={boardInteractive}
         onSquareClick={handleSquareClick}
       />

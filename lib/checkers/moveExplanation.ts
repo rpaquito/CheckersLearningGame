@@ -48,7 +48,12 @@ function isCenterColumn(square: number): boolean {
   return CENTER_COLUMNS.has(squareToRowCol(square).col);
 }
 
-export function explainMove({ move, boardBeforeMove, boardAfterMove, moverColor, locale }: ExplainMoveParams): string {
+export function explainMove(params: ExplainMoveParams): string {
+  // boardBeforeMove is on ExplainMoveParams for interface symmetry with the
+  // rest of this module (describeMoveForToast's params, the suggestion call
+  // site) but this function itself never reads it -- destructure only what
+  // it actually uses instead of naming (and then ignoring) the rest.
+  const { move, boardAfterMove, moverColor, locale } = params;
   const opponentColor: Color = moverColor === 'b' ? 'w' : 'b';
 
   if (move.captures.length > 1) {

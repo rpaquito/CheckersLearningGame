@@ -129,10 +129,13 @@ components/LearningPanel/
 lib/checkers/ (additions in the Toast/Modal UI chrome phase)
   gameEndMessage.ts        # describeGameEnd -- GameStatus -> title/kind for
                             # GameEndModal, no locale param yet (Phase 8)
-  gradeMove.ts               # gradeMove -- wraps two fixed-depth evaluate()
-                              # calls (before/after a move) into a MoveGrade
-                              # via moveClassification.ts, finally giving
-                              # that phase's unused machinery a caller
+lib/checkers/ (additions in the Learning Mode phase)
+  gradeMove.ts               # gradeMove -- runs ONE findBestMove search on
+                              # the pre-move board and reads both the best
+                              # and played-move scores out of its candidate
+                              # list into a MoveGrade via
+                              # moveClassification.ts, finally giving that
+                              # phase's unused machinery a caller
   moveExplanation.ts         # explainMove/describeMoveQuality/materialFeel/
                               # describeMoveForToast -- canned-phrase move
                               # descriptions, bilingual (Locale: 'pt'|'en')
@@ -500,24 +503,37 @@ reasons must never silently also change what a move suggestion recommends
 independent of *any* `Difficulty`, including whichever one currently
 happens to share its numbers.
 
-### Move-quality grading finally has a caller — and needs no new worker message
+### Move-quality grading uses ONE search, not two — reading both scores out of its candidate list
 
 `lib/checkers/gradeMove.ts`'s `gradeMove()` is the first real consumer of
-the `evaluate` worker message and `moveClassification.ts`'s
-`evalLoss`/`classifyMove`, both built (but unused) in the AI-opponent
-phase. It works by calling `evaluate(boardBeforeMove, moverColor,
-GRADE_DEPTH)` and `evaluate(boardAfterMove, opponentColor, GRADE_DEPTH)` --
-the SAME fixed `GRADE_DEPTH` for both, negating the second (per
-`evaluate.ts`'s antisymmetry) to get the played move's value from the
-mover's own perspective. `GRADE_DEPTH` (currently 8, in `gradeMove.ts`) is
-its own constant, independent of both the opponent's configured
-`Difficulty` and `SUGGESTION_ENGINE_OPTIONS` — this is what keeps the two
-`evaluate()` calls comparable per CLAUDE.md's "Search scores are
-mate-distance-relative and NOT normalized across searches" section: two
-single-fixed-depth searches at the *same* depth are exactly the
-comparable case that section anticipates, unlike comparing two different
-`findBestMove` calls at whatever depth iterative deepening happened to
-reach.
+`moveClassification.ts`'s `evalLoss`/`classifyMove`, both built (but
+unused) in the AI-opponent phase. An earlier version called the `evaluate`
+worker message twice — once on the board before the move, once on the
+board after, negating the second — and that design was wrong: two separate
+`findBestMove` calls from two different root positions are NOT the
+"comparable" case CLAUDE.md's "Search scores are mate-distance-relative and
+NOT normalized across searches" section describes, even at the same fixed
+depth (a depth-8 search from the after-position is really 9 plies deep
+from the original root), and `search.ts`'s single-legal-move short-circuit
+returns a *static* `evaluate()` instead of a searched score, compounding
+the mismatch. Measured against the real engine, that combination scored
+real blunders as "Boa jogada!" more often than not.
+
+The fix: a new `gradeMove` worker message runs exactly ONE `findBestMove`
+call on `boardBeforeMove`, then reads both `bestScore` (the top candidate)
+and `playedScore` (the specific move that was actually played, looked up
+within that same search's `candidates` array) out of that single search.
+Both numbers come from the same search at the same depth from the same
+root, so they're directly comparable with no negation and no cross-search
+normalization needed. The played move is matched by FULL move equality
+(`from`/`to`/`promotes`/`captures`, not just `from`/`to`) — this repo has a
+documented, rare case where two distinct legal capture chains can share the
+same `from`/`to` while capturing different pieces (see `useCheckersGame.ts`'s
+conventions above); matching the whole move shape, which the caller always
+has since it's the move that was actually played, side-steps that ambiguity
+entirely. `GRADE_DEPTH` (currently 8, in `gradeMove.ts`) remains its own
+constant, independent of both the opponent's configured `Difficulty` and
+`SUGGESTION_ENGINE_OPTIONS`'s suggestion strength.
 
 ### Grading and suggestion failures are silent by design; the AI-move failure is not
 
