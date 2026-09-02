@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { buildBoard, squareAt } from '@/lib/checkers/demoBoards';
 import { InteractiveDemo } from './InteractiveDemo';
 
@@ -39,5 +39,36 @@ describe('InteractiveDemo', () => {
     fireEvent.click(container.querySelector(`[aria-label="square ${TARGET}"]`) as HTMLButtonElement);
     fireEvent.click(screen.getByRole('button', { name: 'Reiniciar' }));
     expect(container.querySelector(`[data-square="${START}"]`)).not.toBeNull();
+  });
+
+  it('keeps the captured piece visible until the fade animation completes, proving the mover color is inferred correctly', () => {
+    vi.useFakeTimers();
+    try {
+      const start = squareAt(2, 1);
+      const jumped = squareAt(3, 2);
+      const landing = squareAt(4, 3);
+      const board = buildBoard([
+        { row: 2, col: 1, color: 'b', kind: 'man' },
+        { row: 3, col: 2, color: 'w', kind: 'man' },
+      ]);
+      const { container } = render(
+        <InteractiveDemo title="Título" description="Descrição" board={board} square={start} />
+      );
+      fireEvent.click(container.querySelector(`[aria-label="square ${landing}"]`) as HTMLButtonElement);
+      // Before the fade timer fires, the captured piece must still be in the
+      // DOM (fading out) -- if InteractiveDemo passed CheckersBoard the wrong
+      // `turn`, CheckersBoard's animation inference would fail to find the
+      // move and hard-snap to the new position instead, removing the
+      // captured piece immediately and making this assertion fail.
+      const jumpedPiece = container.querySelector(`[data-square="${jumped}"]`);
+      expect(jumpedPiece).not.toBeNull();
+      expect(jumpedPiece?.className).toContain('opacity-0');
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+      expect(container.querySelector(`[data-square="${jumped}"]`)).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -205,8 +205,7 @@ components/InteractiveDemo/
   InteractiveDemo.test.tsx     # co-located tests
 components/NavCard/
   NavCard.tsx                  # link card "title + description" -- the hub's
-                               # tile shell, a generic component reused by
-                               # every `/aprender` page
+                               # tile shell
 app/aprender/
   page.tsx                     # tutorial hub -- displays six NavCard tiles
                                (/aprender/pecas, /aprender/regras-especiais,
@@ -216,15 +215,15 @@ app/aprender/
                                later phase per Conventions entry below)
   pecas/page.tsx               # piece movement rules -- interactive demo +
                                explanatory text
-  regras-especiais/page.tsx    # special rules (promotion, mandatory capture,
-                               multi-jump) -- interactive demos + explanatory
-                               text
+  regras-especiais/page.tsx    # special rules (mandatory capture, multi-jump)
+                               -- interactive demos + explanatory text
   fim-de-jogo/page.tsx         # end-game conditions (win/loss/draw) --
                                interactive demos + explanatory text
   estrategia/page.tsx          # strategy tips -- text-only page, no demos
-  centipawns/page.tsx          # move-quality explainer (what 50-centipawn
-                               loss means) -- text-only page, references
-                               moveExplanation.ts's classifications
+  centipawns/page.tsx          # move-quality explainer (engine-evaluation
+                               badge system using the checkers material
+                               scale) -- text-only page, references
+                               MoveQuality type from moveClassification.ts
 public/
   board/                   # square texture assets for board themes (sakura/
                            # nebulosa/neon) — light/dark pairs, chess-agnostic
@@ -830,14 +829,16 @@ create the missing route and the link will start working.
 ### Captured-piece removal in tests requires fake timers to match CheckersBoard's animation
 
 `components/CheckersBoard/CheckersBoard.tsx` keeps captured pieces rendered (with
-`opacity: 0` and `pointer-events: none`) for `CAPTURE_FADE_MS` (300ms) before
-removing them from its internal `fadeOutPieces` state. Any test that clicks a
-capturing move and then asserts on the captured square's removal from the DOM must
-advance past this animation duration using fake timers (`vi.useFakeTimers()` /
-`act(() => vi.advanceTimersByTime(400))` / `vi.useRealTimers()` in a `try/finally`)
-— a synchronous assertion immediately after the click will intermittently or always
-fail, depending on exact timing. See `CheckersBoard.test.tsx`'s own "fades a captured
-piece out and removes it after the fade duration" test for the pattern.
+`opacity-0 scale-75` classes, their `removing` flag set to true) for `CAPTURE_FADE_MS`
+(300ms) before removing them from its internal `displayPieces` state. The whole pieces
+container has `pointer-events-none`, applying to every piece, not just captured ones.
+Any test that clicks a capturing move and then asserts on the captured square's removal
+from the DOM must advance past this animation duration using fake timers
+(`vi.useFakeTimers()` / `act(() => vi.advanceTimersByTime(400))` / `vi.useRealTimers()`
+in a `try/finally`) — a synchronous assertion immediately after the click will
+intermittently or always fail, depending on exact timing. See `CheckersBoard.test.tsx`'s
+own "fades a captured piece out and removes it after the fade duration" test for the
+pattern.
 
 ## Deploy
 

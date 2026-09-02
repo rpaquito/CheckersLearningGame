@@ -9,7 +9,7 @@ const DEMOS: PieceDemo[] = [
   {
     title: 'Sem jogadas legais',
     description:
-      'Se, na tua vez, não tiveres nenhuma jogada legal disponível -- nem simples nem de captura -- perdes o jogo de imediato. Esta peça está bloqueada: experimenta clicar nela.',
+      'Se, na tua vez, não tiveres nenhuma jogada legal disponível -- nem simples nem de captura -- perdes o jogo de imediato. Esta peça está bloqueada: repara que nenhuma casa fica destacada, porque não há nenhuma jogada legal disponível.',
     ...NO_LEGAL_MOVES_DEMO,
   },
 ];

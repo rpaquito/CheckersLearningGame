@@ -9,13 +9,13 @@ const DEMOS: PieceDemo[] = [
   {
     title: 'Captura obrigatória',
     description:
-      'Se uma peça pode capturar, a captura é obrigatória -- não é possível fazer um movimento simples enquanto houver uma captura disponível para essa cor. Clica na peça preta para saltar sobre a peça branca.',
+      'Se uma peça pode capturar, a captura é obrigatória -- não é possível fazer um movimento simples enquanto houver uma captura disponível para essa cor. Clica na casa destacada para saltar sobre a peça branca.',
     ...MANDATORY_CAPTURE_DEMO,
   },
   {
     title: 'Sequência de capturas (lance múltiplo)',
     description:
-      'Uma única jogada pode encadear várias capturas seguidas, desde que cada salto aterre numa casa livre. Clica na peça preta para veres as duas peças brancas capturadas na mesma jogada.',
+      'Uma única jogada pode encadear várias capturas seguidas, desde que cada salto aterre numa casa livre. Clica na casa destacada para veres as duas peças brancas capturadas na mesma jogada.',
     ...MULTI_JUMP_DEMO,
   },
 ];

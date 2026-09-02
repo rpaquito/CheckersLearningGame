@@ -43,9 +43,6 @@ const TILES: TileData[] = [
     label: 'Dois jogadores',
   },
   {
-    // /aprender doesn't exist until Phase 6 (next per spec §13) -- this
-    // tile links ahead of it deliberately, same as other forward-reaching
-    // wiring already documented in CLAUDE.md.
     href: '/aprender',
     gradient: 'linear-gradient(135deg, #B87FDB, #7B3FA0)',
     emoji: '📖',

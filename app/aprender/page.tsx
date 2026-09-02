@@ -6,8 +6,8 @@ import { PageGlow, PageHeader } from '@/components/PageChrome/PageChrome';
 
 // /aprender/aberturas doesn't exist until a later phase (the openings/traps
 // trainer, design spec §13 phase 7) -- this tile links ahead of it
-// deliberately, same tolerance already used for the home menu's "Aprender
-// a jogar" tile before this very phase existed.
+// deliberately, matching this repo's established tolerance for forward-
+// reaching links to a not-yet-built route.
 const TOPICS = [
   {
     href: '/aprender/pecas',
