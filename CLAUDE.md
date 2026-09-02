@@ -54,7 +54,8 @@ lib/checkers/
 components/CheckersBoard/
   CheckersBoard.tsx   # "dumb" 8x8 board -- never decides legality, renders
                        # whatever the caller computed (selectedSquare/
-                       # legalTargets/mandatoryCaptureSquares/lastMove props).
+                       # legalTargets/mandatoryCaptureSquares/lastMove/
+                       # suggestedMove props).
                        # Derives move animation via inferMove board-diffing,
                        # not by being told what moved -- same philosophy as
                        # Chess Sensei's ChessBoard.tsx, and for the same
@@ -120,9 +121,27 @@ components/RulesModal/
                            # trigger button in /jogar opens it; that's
                            # expected, not a regression, same as
                            # /configurar above.
+components/LearningPanel/
+  LearningPanel.tsx       # toggle + suggestion button/explanation -- "dumb"
+                           # like CheckersBoard, doesn't know whose turn it
+                           # is or whether the game ended (canRequestSuggestion
+                           # is how the caller controls that)
 lib/checkers/ (additions in the Toast/Modal UI chrome phase)
   gameEndMessage.ts        # describeGameEnd -- GameStatus -> title/kind for
                             # GameEndModal, no locale param yet (Phase 8)
+  gradeMove.ts               # gradeMove -- wraps two fixed-depth evaluate()
+                              # calls (before/after a move) into a MoveGrade
+                              # via moveClassification.ts, finally giving
+                              # that phase's unused machinery a caller
+  moveExplanation.ts         # explainMove/describeMoveQuality/materialFeel/
+                              # describeMoveForToast -- canned-phrase move
+                              # descriptions, bilingual (Locale: 'pt'|'en')
+                              # from day one per spec §5, though every call
+                              # site today hardcodes 'pt' -- no UI locale
+                              # toggle exists until Phase 8
+  useLearningModePreference.ts # persisted (localStorage) Learning Mode
+                                # toggle, same SSR-hydration-safe pattern as
+                                # useCheckersGame
 ```
 
 ## Conventions
@@ -469,6 +488,115 @@ and reads from i18n dictionaries), `lib/checkers/gameEndMessage.ts`'s
 `describeGameEnd` hardcodes Portuguese strings directly — no i18n system
 exists in this repo yet (Phase 8). Revisit this function's signature when
 that phase adds a `Locale`/dictionary system.
+
+### Learning Mode's suggestion strength is a dedicated constant, not `dificil` itself
+
+`lib/checkers/difficulty.ts`'s `SUGGESTION_ENGINE_OPTIONS` starts with the
+exact same numbers as `DIFFICULTY_OPTIONS.dificil` (`maxDepth: 10,
+timeBudgetMs: 1800, randomness: 0`) but is a separate exported constant.
+This is deliberate: a future retuning of `dificil` for opponent-play-feel
+reasons must never silently also change what a move suggestion recommends
+-- "full-strength hint regardless of game difficulty" (spec §5) means
+independent of *any* `Difficulty`, including whichever one currently
+happens to share its numbers.
+
+### Move-quality grading finally has a caller — and needs no new worker message
+
+`lib/checkers/gradeMove.ts`'s `gradeMove()` is the first real consumer of
+the `evaluate` worker message and `moveClassification.ts`'s
+`evalLoss`/`classifyMove`, both built (but unused) in the AI-opponent
+phase. It works by calling `evaluate(boardBeforeMove, moverColor,
+GRADE_DEPTH)` and `evaluate(boardAfterMove, opponentColor, GRADE_DEPTH)` --
+the SAME fixed `GRADE_DEPTH` for both, negating the second (per
+`evaluate.ts`'s antisymmetry) to get the played move's value from the
+mover's own perspective. `GRADE_DEPTH` (currently 8, in `gradeMove.ts`) is
+its own constant, independent of both the opponent's configured
+`Difficulty` and `SUGGESTION_ENGINE_OPTIONS` — this is what keeps the two
+`evaluate()` calls comparable per CLAUDE.md's "Search scores are
+mate-distance-relative and NOT normalized across searches" section: two
+single-fixed-depth searches at the *same* depth are exactly the
+comparable case that section anticipates, unlike comparing two different
+`findBestMove` calls at whatever depth iterative deepening happened to
+reach.
+
+### Grading and suggestion failures are silent by design; the AI-move failure is not
+
+`app/jogar/page.tsx` already had one engine-failure path before this phase
+(`setEngineError`, surfaced in the `aria-live` status line) for when the
+AI's own move request fails — that failure blocks play, so it must be
+visible. Learning Mode's two new engine calls (`gradeMove` in the
+post-move grading effect, `getBestMove` in `handleRequestSuggestion`) are
+a nice-to-have overlay on top of a game that works fine without them, so
+both `catch` blocks only `console.error` and return — no toast, no status
+line change, no `setEngineError`. A player whose grading silently stops
+working (engine error, or Learning Mode toggled off mid-flight) simply
+sees no toast for that move and can keep playing uninterrupted.
+
+### Vs-computer mode shares its engine with Learning Mode; local mode gets a second, independent one
+
+`app/jogar/page.tsx`'s `getLearningEngine()` returns `engineRef.current`
+when `isAiMode` is true (the same worker already running the opponent's
+moves) and `learningEngineRef.current` otherwise (a second worker, created
+lazily only while Learning Mode is on in a local two-player game).
+Sharing in vs-computer mode is deliberate, not just an optimization:
+`learningEngineRef`'s creation effect depends only on `[isAiMode,
+learningModeEnabled]`, and `isAiMode` never changes during a game, so
+toggling Learning Mode on/off in a vs-computer game never touches
+`engineRef`'s lifecycle — an earlier design that instead made ONE engine
+effect depend on `learningModeEnabled` even when `isAiMode` was true would
+have recreated/terminated that engine on every toggle, and
+`checkersEngineClient.ts`'s `terminate()` rejects every in-flight request —
+silently cancelling an outstanding AI move request mid-think as a side
+effect of the player flipping a Learning Mode switch. Local mode has no
+such shared engine to protect, so it simply gets its own.
+
+### A move suggestion is graded by nothing; a played move is graded by `gradeMove`
+
+`moveExplanation.ts`'s `explainMove()` (what a move does) and
+`describeMoveForToast()` (quality label + `explainMove()` + an optional
+material-feel note) are separate exports on purpose: `/jogar`'s suggestion
+handler calls `explainMove()` directly (a suggestion has no `MoveQuality`
+or `evalLoss` of its own — it's *the* engine's own top pick, not something
+being graded against it), while the post-move grading effect calls
+`describeMoveForToast()`, which needs the `MoveQuality`/`loss` that
+`gradeMove()` just computed.
+
+### `moveExplanation.ts` is bilingual from day one — a deliberate, narrow exception
+
+Unlike `gameEndMessage.ts`/`RulesModal.tsx` (hardcoded Portuguese, i18n
+deferred to Phase 8), `lib/checkers/moveExplanation.ts` takes an explicit
+`Locale` (`'pt' | 'en'`) parameter and has both phrase sets written now,
+per spec §5's explicit call-out that this module (unlike Chess Sensei's
+retrofitted `lib/chess/moveExplanation.ts`) should never need a bilingual
+retrofit later. Every call site built in this phase (`app/jogar/page.tsx`)
+still hardcodes `locale: 'pt'` — there is no UI locale toggle anywhere in
+the app yet. Revisit call sites once Phase 8 introduces one.
+
+### Grading effect uses a mount-lifecycle ref, not a per-render cancelled flag
+
+The post-move grading effect in `app/jogar/page.tsx` originally tracked
+completion via a `cancelled` local variable in the effect body, cleaned up
+on re-render via a dependency on `[state.lastMove]`. This caused the
+move-quality toast to never appear in vs-computer mode: the grading effect's
+two `evaluate()` calls share the same worker queue (`engineRef`) with the
+AI's own `getBestMove()` request, which is enqueued first (because its
+effect is declared earlier in the file). The AI's reply move lands via a
+same-tick microtask and flips `state.lastMove` again before grading's
+queued calls can resolve, so the cleanup always cancelled the grading
+promise before the toast could show. Local two-player mode was unaffected
+since `learningEngineRef` is never contended by a competing automatic move.
+The fix replaces the per-render `cancelled` variable with a `mountedRef`
+initialized to `true`, kept in sync via a separate empty-deps `useEffect`
+that sets `mountedRef.current = true` on mount and `false` on unmount.
+Grading's `.then()`/`.catch()` now check `if (!mountedRef.current) return;`
+instead of the old `cancelled` flag. Re-arming the ref on every mount (not
+just declaring `useRef(true)` once) is load-bearing: React Strict Mode in
+development double-invokes every effect once (mount → cleanup → mount
+again), which would otherwise leave the ref permanently `false` after the
+simulated unmount, suppressing every grading toast in `next dev` while
+working fine in production builds. A toast can still land a beat after the
+AI's own reply (since grading's worker calls queue behind the AI's), but a
+toast that never arrives is not acceptable.
 
 ## Deploy
 
