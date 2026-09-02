@@ -35,10 +35,11 @@ is the historical design record and isn't updated after the fact.
 
 ```
 app/
-  layout.tsx       # root layout (placeholder until the menu/branding phase)
-  page.tsx          # home page (placeholder until the menu/branding phase)
-  globals.css        # Tailwind v4 entrypoint (placeholder tokens until the
-                      # visual-identity phase — see spec §8 for the real palette)
+  layout.tsx       # root layout with font/theme variables
+  page.tsx         # home menu, real page with PageChrome chrome and
+                   # BACKGROUND_THEMES background picker integration
+  globals.css      # Tailwind v4 entrypoint with "anime" visual-identity tokens
+                   # (Bangers/Poppins fonts, color palette per design spec §8)
 lib/checkers/
   types.ts           # Square/Color/PieceKind/Piece/Board/CheckersMove/GameStatus
   board.ts            # board geometry: squareToRowCol/rowColToSquare/neighbor/
@@ -55,16 +56,21 @@ components/CheckersBoard/
   CheckersBoard.tsx   # "dumb" 8x8 board -- never decides legality, renders
                        # whatever the caller computed (selectedSquare/
                        # legalTargets/mandatoryCaptureSquares/lastMove/
-                       # suggestedMove props).
+                       # suggestedMove props). New optional boardTheme/
+                       # pieceStyle props control rendering per settings,
+                       # while maintaining "dumb" principle — only renders
+                       # what's given.
                        # Derives move animation via inferMove board-diffing,
                        # not by being told what moved -- same philosophy as
                        # Chess Sensei's ChessBoard.tsx, and for the same
                        # reason: reusable by future non-hook callers (e.g. a
                        # tutorial demo) without needing a lastMove-shaped prop.
-  PieceIcon.tsx         # dispatches to a piece style -- only "classico"
-                        # exists yet (see pieceStyles/), Phase 5 adds more
+  PieceIcon.tsx         # dispatches to a piece style -- "classico"
+                        # (original), "moderno", "anime" (Phase 5 additions)
   pieceStyles/
-    classico.tsx          # man = disc + rim, king = disc + rim + crown polygon
+    classico.tsx        # man = disc + rim, king = disc + rim + crown polygon
+    moderno.tsx         # alternative piece design (Phase 5)
+    anime.tsx           # third piece design (Phase 5)
 app/jogar/
   page.tsx                  # the ONE game loop for both modes: a click-to-
                             # select-then-move state machine over
@@ -95,13 +101,38 @@ lib/checkers/ (additions in the AI-opponent phase)
                             # resolvePlayerColor
 app/configurar/
   page.tsx                  # difficulty/color picker for vs-computer games;
-                            # plain Tailwind, no chrome/i18n system yet
-                            # (Phase 5/8). Reachable only by typing the URL —
-                            # nothing links to it until Phase 5 builds the
-                            # real menu; that's expected, not a regression.
+                            # now reads initial state from useSettings() instead
+                            # of hardcoded defaults, then stays plain Tailwind
+                            # with no PageChrome chrome (out of scope for this
+                            # phase; spec phase-5 feature parity only marks `/`
+                            # and `/opcoes` for new art).
 lib/ui/
   useFocusTrap.ts        # modal focus trapping -- game-agnostic, no chess/
                           # checkers dependency, ported unchanged
+  activeToggleStyle.ts   # shared "active" gradient for toggle-style selection
+                         # groups (difficulty/color in /configurar and /opcoes)
+lib/settings/
+  settings.ts            # Settings interface (defaultDifficulty/defaultColor/
+                         # boardTheme/backgroundTheme/pieceStyle/language) and
+                         # DEFAULT_SETTINGS; validation and storage key
+  themes.ts              # BOARD_THEMES (sakura/nebulosa/neon) and
+                         # BACKGROUND_THEMES (templo/dojo/cosmico) registries;
+                         # includes fallbackGradient for background images
+                         # pending real art from Phase 10
+  useSettings.ts         # useSyncExternalStore singleton reading/writing
+                         # Settings to localStorage
+components/ChipButton/
+  ChipButton.tsx         # link-or-button with 4 color variants (purple/cyan/
+                         # pink/gold) and diagonal-clip "stamped" shadow;
+                         # ported from Chess Sensei unchanged
+components/ToggleGroup/
+  ToggleGroup.tsx        # radio-group-style selection widget with
+                         # activeToggleStyle on selected option; ported from
+                         # Chess Sensei unchanged
+components/PageChrome/
+  PageChrome.tsx         # layout wrapper with PageHeader, PageGlow, and
+                         # title text effects (titleStroke); ported from
+                         # Chess Sensei unchanged
 components/Toast/
   Toast.tsx               # pure toast card, no timer -- closes via onDismiss
   ToastProvider.tsx        # app-wide context (mounted in app/layout.tsx),
@@ -126,6 +157,10 @@ components/LearningPanel/
                            # like CheckersBoard, doesn't know whose turn it
                            # is or whether the game ended (canRequestSuggestion
                            # is how the caller controls that)
+app/opcoes/
+  page.tsx                 # settings page with theme/difficulty/color/piece
+                           # pickers using PageChrome chrome and useSettings();
+                           # new in Phase 5
 lib/checkers/ (additions in the Toast/Modal UI chrome phase)
   gameEndMessage.ts        # describeGameEnd -- GameStatus -> title/kind for
                             # GameEndModal, no locale param yet (Phase 8)
@@ -145,6 +180,13 @@ lib/checkers/ (additions in the Learning Mode phase)
   useLearningModePreference.ts # persisted (localStorage) Learning Mode
                                 # toggle, same SSR-hydration-safe pattern as
                                 # useCheckersGame
+public/
+  board/                   # square texture assets for board themes (sakura/
+                           # nebulosa/neon) — light/dark pairs, chess-agnostic
+                           # and copied from Chess Sensei. Menu background
+                           # images (background-*.webp) are chess-specific and
+                           # are Phase 10 work (see Conventions: Background
+                           # art assumption was false).
 ```
 
 ## Conventions
@@ -613,6 +655,56 @@ simulated unmount, suppressing every grading toast in `next dev` while
 working fine in production builds. A toast can still land a beat after the
 AI's own reply (since grading's worker calls queue behind the AI's), but a
 toast that never arrives is not acceptable.
+
+### Spec §8's background-art claim was verified false during implementation
+
+The design spec claims Chess Sensei's three `public/menu/background-*.webp`
+files are "scenic art, no chess imagery" and can be copied unchanged. Direct
+inspection during this plan's research proved this false: `background-templo.webp`
+shows the sensei mascot seated on a floating chessboard surrounded by chess pieces;
+`background-dojo.webp` and `background-cosmico.webp` both center a giant chess
+king piece. Only the six flat `public/board/*.webp` square textures are
+genuinely chess-agnostic and were copied. The three background images are
+real, deferred Draw Things work (Phase 10). In the meantime, `lib/settings/themes.ts`
+defines `BACKGROUND_THEMES` with each theme's `fallbackGradient` layered behind
+the image path via CSS, so `/` and `/opcoes` render an intentional gradient
+today, and no code change is needed once Phase 10 drops real files into the
+`public/menu/` paths.
+
+### `/configurar`, `/jogar`, and modals stayed plain-Tailwind by spec
+
+Only `/` and `/opcoes` received the new PageChrome chrome and "anime"
+visual identity in this phase — this matches the spec's feature-parity table
+(§5), which marks only those two pages for "New art" in Phase 5. Every other
+page (`/configurar`, `/jogar`) and component (`RulesModal`, `GameEndModal`,
+`ConfirmModal`, `LearningPanel`, `Toast`) keep their hardcoded-Portuguese,
+plain-Tailwind style until a later phase explicitly revisits them. `CheckersBoard`'s
+new `boardTheme`/`pieceStyle` props exist and are tested; `/jogar` doesn't
+pass real `settings` values into them yet — it still renders with the default
+`'nebulosa'`/`'classico'`. Wiring those props through in `/jogar` is deferred
+to whichever phase gives `/jogar` its own visual pass.
+
+### `Settings.language` has no auto-detection and no UI control yet
+
+`lib/settings/settings.ts` declares `Settings.language: Locale ('pt' | 'en')`
+and sets its default to `'pt'`, but nothing auto-detects browser locale (unlike
+Chess Sensei's `detectLocale`) and no UI control exists in `/opcoes` to change it.
+The field exists purely for forward-compatibility with Phase 8's i18n system,
+which will add both detection and a language toggle. For now, nothing reads
+`Settings.language` except its default initialization — every UI string is
+hardcoded Portuguese.
+
+### `DEFAULT_SETTINGS` values are load-bearing and must never be changed casually
+
+`lib/settings/settings.ts`'s `DEFAULT_SETTINGS` has `defaultDifficulty: 'facil'`
+and `defaultColor: 'w'`, mandated by the design spec (spec §7, "Default
+Difficulty & Color") and depended on by every test that checks `/configurar`'s
+fallback state. During Task 12's implementation, a test failure was briefly
+"fixed" by changing `DEFAULT_SETTINGS` itself — an out-of-scope, spec-violating
+change caught during review and reverted (commit 93a89ab). Documented here as
+a cautionary note: any test that seems to require a different default value
+has the wrong expectation, not the settings module. `DEFAULT_SETTINGS` values
+are design decisions, not test fixtures.
 
 ## Deploy
 
