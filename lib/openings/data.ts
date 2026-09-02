@@ -3,7 +3,7 @@ import type { Opening } from './types';
 export const OPENINGS: Opening[] = [
   {
     id: 'old-fourteenth',
-    name: { pt: 'A Décima Quarta Antiga', en: 'Old Fourteenth' },
+    name: { pt: 'Old Fourteenth', en: 'Old Fourteenth' },
     description: {
       pt: 'Uma das respostas mais estudadas ao movimento de abertura mais popular do jogo (11-15), levando a uma luta equilibrada pelo centro.',
       en: "One of the most studied replies to the game's most popular opening move (11-15), leading to a balanced fight for the center.",
@@ -24,7 +24,7 @@ export const OPENINGS: Opening[] = [
   },
   {
     id: 'single-corner',
-    name: { pt: 'Canto Simples', en: 'Single Corner' },
+    name: { pt: 'Single Corner', en: 'Single Corner' },
     description: {
       pt: 'Também nasce de 11-15, mas a resposta branca evita o contacto direto no centro, preferindo desenvolver pelo lado do canto simples.',
       en: 'Also starts from 11-15, but White replies away from direct central contact, developing instead on the single-corner side.',
@@ -45,7 +45,7 @@ export const OPENINGS: Opening[] = [
   },
   {
     id: 'defiance',
-    name: { pt: 'Desafio', en: 'Defiance' },
+    name: { pt: 'Defiance', en: 'Defiance' },
     description: {
       pt: 'Um sistema mais agressivo para as pretas, que ocupa cedo a coluna central esquerda em vez da clássica 11-15.',
       en: 'A more aggressive system for Black, occupying the left-center column early instead of the classic 11-15.',
@@ -54,19 +54,19 @@ export const OPENINGS: Opening[] = [
       {
         name: { pt: 'Linha principal', en: 'Main line' },
         moves: [
-          { notation: '10-14', explanation: { pt: 'Ocupa cedo a coluna central esquerda, um plano mais direto do que 11-15.', en: 'Occupies the left-center column early, a more direct plan than 11-15.' } },
-          { notation: '23-19', explanation: { pt: 'O branco desenvolve pelo flanco direito, evitando contacto imediato.', en: "White develops on the right flank, avoiding immediate contact." } },
-          { notation: '6-10', explanation: { pt: 'Preenche a casa que a primeira peça deixou livre, mantendo a retaguarda coesa.', en: 'Fills the square the first piece left behind, keeping the back ranks cohesive.' } },
-          { notation: '26-23', explanation: { pt: 'O branco faz o mesmo, reocupando o espaço deixado pela peça que avançou.', en: 'White does the same, refilling the space left by the piece that advanced.' } },
-          { notation: '9-13', explanation: { pt: 'Desenvolve uma segunda peça, alargando a presença no centro-direita.', en: 'Develops a second piece, extending the presence toward the center-right.' } },
-          { notation: '22-18', explanation: { pt: 'O branco responde no centro, equilibrando o desenvolvimento.', en: 'White replies in the center, balancing development.' } },
+          { notation: '9-14', explanation: { pt: 'Ocupa cedo a coluna central esquerda, um plano mais direto do que 11-15.', en: 'Occupies the left-center column early, a more direct plan than 11-15.' } },
+          { notation: '24-20', explanation: { pt: 'O branco desenvolve pelo flanco direito, evitando contacto imediato.', en: "White develops on the right flank, avoiding immediate contact." } },
+          { notation: '5-9', explanation: { pt: 'Preenche a casa que a primeira peça deixou livre, mantendo a retaguarda coesa.', en: 'Fills the square the first piece left behind, keeping the back ranks cohesive.' } },
+          { notation: '27-24', explanation: { pt: 'O branco faz o mesmo, reocupando o espaço deixado pela peça que avançou.', en: 'White does the same, refilling the space left by the piece that advanced.' } },
+          { notation: '11-15', explanation: { pt: 'Desenvolve uma segunda peça, alargando a presença no centro.', en: 'Develops a second piece, extending the presence in the center.' } },
+          { notation: '23-19', explanation: { pt: 'O branco responde no centro, equilibrando o desenvolvimento.', en: 'White replies in the center, balancing development.' } },
         ],
       },
     ],
   },
   {
     id: 'alma',
-    name: { pt: 'A Alma', en: 'Alma' },
+    name: { pt: 'Alma', en: 'Alma' },
     description: {
       pt: 'Preta abre pelo lado do canto duplo com 9-13, construindo uma estrutura sólida e paciente.',
       en: 'Black opens on the double-corner side with 9-13, building a solid, patient structure.',
@@ -87,7 +87,7 @@ export const OPENINGS: Opening[] = [
   },
   {
     id: 'cross',
-    name: { pt: 'Cruz', en: 'Cross' },
+    name: { pt: 'Cross', en: 'Cross' },
     description: {
       pt: 'O movimento 10-14 cria uma disposição em cruz no centro do tabuleiro, dando nome à abertura.',
       en: 'The move 10-14 creates a cross-shaped arrangement in the center of the board, giving the opening its name.',
@@ -108,7 +108,7 @@ export const OPENINGS: Opening[] = [
   },
   {
     id: 'switcher',
-    name: { pt: 'A Alternadora', en: 'Switcher' },
+    name: { pt: 'Switcher', en: 'Switcher' },
     description: {
       pt: 'Preta troca a diagonal habitual com 10-15, alternando o padrão de desenvolvimento mais comum.',
       en: 'Black switches the usual diagonal with 10-15, alternating away from the most common development pattern.',
@@ -129,7 +129,7 @@ export const OPENINGS: Opening[] = [
   },
   {
     id: 'double-corner',
-    name: { pt: 'Canto Duplo', en: 'Double Corner' },
+    name: { pt: 'Double Corner', en: 'Double Corner' },
     description: {
       pt: 'Preta avança para o lado do canto duplo com 11-16, preparando uma estrutura defensiva sólida nesse flanco.',
       en: 'Black advances toward the double-corner side with 11-16, preparing a solid defensive structure on that flank.',
@@ -150,7 +150,7 @@ export const OPENINGS: Opening[] = [
   },
   {
     id: 'laird-and-lady',
-    name: { pt: 'O Senhor e a Dama', en: 'Laird and Lady' },
+    name: { pt: 'Laird and Lady', en: 'Laird and Lady' },
     description: {
       pt: 'Uma abertura clássica que começa com 12-16, uma das sete jogadas de abertura legais mais raramente vista nas outras aberturas desta lista.',
       en: 'A classic opening starting with 12-16, one of the seven legal opening moves rarely seen among the other openings in this list.',

@@ -53,9 +53,8 @@ describe('OPENINGS', () => {
     }
   });
 
-  it('has a genuinely different English name/description for every opening', () => {
+  it('has a genuinely different English description for every opening', () => {
     for (const opening of OPENINGS) {
-      expect(opening.name.en).not.toBe(opening.name.pt);
       expect(opening.description.en).not.toBe(opening.description.pt);
     }
   });
