@@ -50,6 +50,23 @@ function JogarPageInner() {
   const [suggestionLoading, setSuggestionLoading] = useState(false);
   const learningEngineRef = useRef<CheckersEngineClient | null>(null);
   const pendingGradeRef = useRef<{ boardBeforeMove: Board; moverColor: Color } | null>(null);
+  // Flipped false only on true unmount, never on a mere state.lastMove
+  // change -- see the grading effect below for why this must NOT be tied
+  // to that effect's own re-run cleanup. Must also be set back to `true` in
+  // the effect body (not just declared via useRef(true)): React 18 Strict
+  // Mode double-invokes every effect once in development (mount -> cleanup
+  // -> mount again) to surface exactly this kind of bug -- without
+  // re-arming it here, that dev-only simulated unmount would leave
+  // mountedRef.current stuck `false` for the rest of the component's real
+  // lifetime, permanently suppressing every grading toast in `next dev`
+  // while working fine in a production build.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const [humanColor] = useState<Color>(() => resolvePlayerColor(colorChoice));
   const aiColor: Color = humanColor === 'b' ? 'w' : 'b';
@@ -137,6 +154,24 @@ function JogarPageInner() {
   // the AI's own moves (made by the isAiTurn effect above, never through
   // handleSquareClick) never populate pendingGradeRef, so they're never
   // graded, satisfying "grade every human-made move, never the engine's".
+  //
+  // Deliberately has NO cleanup function tied to [state.lastMove]. An
+  // earlier version cancelled itself (via a per-run `cancelled` local) every
+  // time state.lastMove changed again -- which in vs-computer mode is
+  // *guaranteed* to happen before this resolves: grading's two evaluate()
+  // calls share engineRef's FIFO queue with the AI's own getBestMove()
+  // request (queued first, since the isAiTurn effect is declared earlier),
+  // and the AI's reply lands via a same-tick microtask the instant its
+  // request settles -- always faster than grading's own queued worker
+  // round-trip. That made the per-run `cancelled` flag flip true before
+  // gradeMove() could ever resolve, silently swallowing every vs-computer
+  // toast. A toast landing a beat after the AI's own reply is acceptable UX;
+  // a toast that never arrives is not. mountedRef (declared above, flipped
+  // only by a real unmount effect) still guards the one risk that matters:
+  // this promise resolving after the player has navigated away from /jogar
+  // entirely, where show() would otherwise pop a stale toast on whatever
+  // page they're on now (ToastProvider is mounted above this page and
+  // outlives it).
   useEffect(() => {
     const pending = pendingGradeRef.current;
     pendingGradeRef.current = null;
@@ -152,10 +187,9 @@ function JogarPageInner() {
     const boardAfterMove = state.board;
     const opponentColor: Color = pending.moverColor === 'b' ? 'w' : 'b';
 
-    let cancelled = false;
     gradeMove(engine, pending.boardBeforeMove, pending.moverColor, boardAfterMove, opponentColor)
       .then(({ quality, loss }) => {
-        if (cancelled) return;
+        if (!mountedRef.current) return;
         const message = describeMoveForToast({
           quality,
           loss,
@@ -168,15 +202,12 @@ function JogarPageInner() {
         show(message, quality);
       })
       .catch((error: unknown) => {
-        if (cancelled) return;
+        if (!mountedRef.current) return;
         // Quiet failure by design: grading is a nice-to-have overlay, not
         // core gameplay -- unlike the AI-move-request failure above, this
         // must never surface as a blocking error or disrupt play.
         console.error('[jogar] move grading failed:', error);
       });
-    return () => {
-      cancelled = true;
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.lastMove]);
 
