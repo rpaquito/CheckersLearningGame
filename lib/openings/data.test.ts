@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { OPENINGS } from './data';
 import { replayLine } from './replayLine';
+import { allLegalMoves, applyMove } from '@/lib/checkers/moveGeneration';
 
 const LOCALES = ['pt', 'en'] as const;
 
@@ -63,6 +64,44 @@ describe('OPENINGS', () => {
     for (const opening of OPENINGS) {
       for (const line of opening.lines) {
         expect(() => replayLine(line)).not.toThrow();
+      }
+    }
+  });
+
+  it('has a unique move-1 across all openings, except the documented old-fourteenth/single-corner pair', () => {
+    const firstMoves = OPENINGS.map((o) => o.lines[0].moves[0].notation);
+    const counts = new Map<string, number>();
+    for (const move of firstMoves) counts.set(move, (counts.get(move) ?? 0) + 1);
+    const duplicated = [...counts.entries()].filter(([, count]) => count > 1);
+    expect(duplicated).toEqual([['11-15', 2]]);
+  });
+
+  it('never has name.pt differ from name.en (opening names are loanwords, not translated)', () => {
+    for (const opening of OPENINGS) {
+      expect(opening.name.pt).toBe(opening.name.en);
+    }
+  });
+
+  it("does not end any line with the taught side facing a forced, material-losing capture", () => {
+    for (const opening of OPENINGS) {
+      for (const line of opening.lines) {
+        const replayed = replayLine(line);
+        const finalBoard = replayed[replayed.length - 1].board;
+        const taughtColor = replayed[0].move.from <= 12 ? 'b' : 'w'; // whichever color made move 1
+        const opponentColor = taughtColor === 'b' ? 'w' : 'b';
+        // If the opponent (to move next after the line ends) has a capture
+        // available against the taught side, and every one of the taught
+        // side's own possible replies loses more material than it gains,
+        // that's a line ending in a real blunder -- not just "a capture
+        // exists" (trades are fine), but a NET material loss with no
+        // recapture.
+        const opponentCaptures = allLegalMoves(finalBoard, opponentColor).filter((m) => m.captures.length > 0);
+        for (const capture of opponentCaptures) {
+          const afterCapture = applyMove(finalBoard, capture);
+          const taughtSideReplies = allLegalMoves(afterCapture, taughtColor);
+          const bestRecapture = Math.max(0, ...taughtSideReplies.map((m) => m.captures.length));
+          expect(bestRecapture).toBeGreaterThanOrEqual(capture.captures.length);
+        }
       }
     }
   });

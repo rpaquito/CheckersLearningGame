@@ -16,6 +16,7 @@ export default function AberturasPage() {
             Voltar ao tutorial
           </ChipButton>
         </p>
+        <p className="text-sm text-lilac/60 mt-3">Os nomes e classificações destas aberturas são informativos, não verificados por uma federação de damas.</p>
       </div>
       <ul className="flex flex-col gap-3">
         {OPENINGS.map((opening) => (

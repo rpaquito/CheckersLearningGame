@@ -85,7 +85,7 @@ export function OpeningPractice({ opening }: { opening: Opening }) {
         <div className="w-[min(98vw,62dvh,560px)] sm:w-[min(92vw,62dvh,560px)] flex flex-col items-center gap-3">
           <CheckersBoard
             board={board}
-            turn={nextMoverColor === 'b' ? 'w' : 'b'}
+            turn={nextMoverColor}
             selectedSquare={selectedSquare}
             legalTargets={legalTargets}
             mandatoryCaptureSquares={[]}

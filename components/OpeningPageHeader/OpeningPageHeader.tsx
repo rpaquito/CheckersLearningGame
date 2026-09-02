@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/PageChrome/PageChrome';
 import type { Opening } from '@/lib/openings/types';
 
 export function OpeningPageHeader({ opening, variant }: { opening: Opening; variant: 'study' | 'practice' }) {
-  const name = opening.name.pt.toUpperCase();
+  const name = opening.name.pt;
   const title = variant === 'practice' ? `Praticar: ${name}` : name;
 
   return (
