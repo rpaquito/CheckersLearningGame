@@ -1,20 +1,21 @@
 import Link from 'next/link';
 
 /**
- * Link card "title + description" -- the hub's tile shell. `meta` (an
- * optional third line) is deliberately NOT included here even though
- * Chess Sensei's version has one for its openings list -- nothing in this
- * repo needs it yet (the openings/traps trainer is a later phase); add it
- * back if/when that phase's NavCard usage needs it.
+ * Link card "title + description [+ meta]" -- the hub's tile shell.
+ * `meta` was deliberately omitted when this component was first built
+ * (Phase 6, Tutorial Hub) since nothing needed it yet; the openings list
+ * (Phase 7) is the first real consumer, showing each opening's line name.
  */
 export function NavCard({
   href,
   title,
   description,
+  meta,
 }: {
   href: string;
   title: string;
   description: string;
+  meta?: string;
 }) {
   return (
     <Link
@@ -23,6 +24,7 @@ export function NavCard({
     >
       <p className="font-semibold text-white">{title}</p>
       <p className="text-sm text-lilac/80">{description}</p>
+      {meta && <p className="text-xs text-lilac/60 mt-1">{meta}</p>}
     </Link>
   );
 }
