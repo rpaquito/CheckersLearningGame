@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { BOARD_THEMES, BACKGROUND_THEMES } from './themes';
 import type { BoardTheme, BackgroundTheme } from './settings';
 
@@ -12,6 +14,16 @@ describe('BOARD_THEMES', () => {
       expect(BOARD_THEMES[theme].light).toMatch(/^\/board\//);
       expect(BOARD_THEMES[theme].dark).toMatch(/^\/board\//);
       expect(BOARD_THEMES[theme].label.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('board theme asset paths resolve to real files on disk', () => {
+    for (const theme of ALL_BOARD_THEMES) {
+      const themeInfo = BOARD_THEMES[theme];
+      const lightPath = join(process.cwd(), 'public', themeInfo.light);
+      const darkPath = join(process.cwd(), 'public', themeInfo.dark);
+      expect(existsSync(lightPath)).toBe(true);
+      expect(existsSync(darkPath)).toBe(true);
     }
   });
 });

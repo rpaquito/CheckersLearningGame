@@ -694,17 +694,57 @@ which will add both detection and a language toggle. For now, nothing reads
 `Settings.language` except its default initialization — every UI string is
 hardcoded Portuguese.
 
+### `/configurar`'s initial difficulty/color reads from `useSettings()` via an "override" pattern
+
+`app/configurar/page.tsx` needs to read the user's saved default difficulty and
+color from `useSettings()` and render them as the initial selection. However, a
+plain `useState(settings.defaultDifficulty)` initializer runs once on the first
+render and freezes on its initial value. During SSR hydration, `useSyncExternalStore`'s
+`getServerSnapshot` returns `DEFAULT_SETTINGS` (same on server and client), so
+the state would seed with the generic fallback and never update even though
+`settings` updates post-hydration. The fix uses a nullable "override" pattern
+instead: track `difficultyOverride` and `colorOverride` as `T | null`, then
+compute `const difficulty = difficultyOverride ?? settings.defaultDifficulty`.
+This way, before the user clicks any button this session, the UI renders whatever
+`settings.defaultDifficulty`/`.defaultColor` currently holds (which updates
+correctly post-hydration). Once the user explicitly clicks a button, the override
+takes precedence. This pattern is the same workaround used elsewhere in this
+codebase (e.g., `LearningModePreference` in `lib/checkers/`).
+
 ### `DEFAULT_SETTINGS` values are load-bearing and must never be changed casually
 
 `lib/settings/settings.ts`'s `DEFAULT_SETTINGS` has `defaultDifficulty: 'facil'`
-and `defaultColor: 'w'`, mandated by the design spec (spec §7, "Default
-Difficulty & Color") and depended on by every test that checks `/configurar`'s
-fallback state. During Task 12's implementation, a test failure was briefly
-"fixed" by changing `DEFAULT_SETTINGS` itself — an out-of-scope, spec-violating
-change caught during review and reverted (commit 93a89ab). Documented here as
-a cautionary note: any test that seems to require a different default value
-has the wrong expectation, not the settings module. `DEFAULT_SETTINGS` values
-are design decisions, not test fixtures.
+and `defaultColor: 'w'`, mandated by the design spec (spec §7) and depended on
+by every test that checks `/configurar`'s fallback state. During Task 12's
+implementation, a test failure was briefly "fixed" by changing `DEFAULT_SETTINGS`
+itself — an out-of-scope, spec-violating change caught during review and reverted
+(commit 93a89ab). Documented here as a cautionary note: any test that seems to
+require a different default value has the wrong expectation, not the settings
+module. `DEFAULT_SETTINGS` values are design decisions, not test fixtures.
+
+### `vitest.setup.ts` clears `localStorage` and resets `useSettings` before every test
+
+`vitest.setup.ts` has a global `beforeEach` hook (not per-file, but per entire
+suite) that calls `window.localStorage.clear()` and `__resetSettingsCacheForTests()`.
+This runs before every single test in the whole project, not just settings-related
+ones. This means any test that seeds `localStorage` or calls `saveSettings()` at
+module scope (outside of a `beforeEach` or `it`) will silently have that data
+wiped before the test runs, which can be surprising. When writing a test that
+depends on persisted settings, seed them inside a `beforeEach` hook so they're
+applied after the global clear, or inside the individual `it` block.
+
+### `DEFAULT_SETTINGS.pieceStyle` is `'anime'`; `CheckersBoard`'s default is `'classico'`
+
+`lib/settings/settings.ts`'s `DEFAULT_SETTINGS.pieceStyle` defaults to `'anime'`,
+reflecting the Phase 5 visual redesign. However, `components/CheckersBoard/CheckersBoard.tsx`'s
+own `pieceStyle` prop defaults to `'classico'` when the prop is omitted. This is
+a deliberate, known divergence, not a bug: no page in this codebase currently
+wires `settings.pieceStyle` into the board component, so today nothing observes
+the mismatch. `CheckersBoard`'s default exists purely as a fallback for tests
+and any future caller that renders the board without reading settings at all.
+Once a later phase wires settings into `/jogar`'s board rendering, it will
+explicitly pass `settings.pieceStyle` and the CheckersBoard default will become
+unreachable in the real app (but harmless to keep around).
 
 ## Deploy
 

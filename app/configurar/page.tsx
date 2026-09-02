@@ -23,8 +23,10 @@ const COLOR_OPTIONS: { value: PlayerColor; label: string }[] = [
 export default function ConfigurarPage() {
   const router = useRouter();
   const { settings } = useSettings();
-  const [difficulty, setDifficulty] = useState<Difficulty>(settings.defaultDifficulty);
-  const [color, setColor] = useState<PlayerColor>(settings.defaultColor);
+  const [difficultyOverride, setDifficultyOverride] = useState<Difficulty | null>(null);
+  const [colorOverride, setColorOverride] = useState<PlayerColor | null>(null);
+  const difficulty = difficultyOverride ?? settings.defaultDifficulty;
+  const color = colorOverride ?? settings.defaultColor;
 
   function handleStart() {
     clearSavedGame();
@@ -48,7 +50,7 @@ export default function ConfigurarPage() {
             <button
               key={option.value}
               type="button"
-              onClick={() => setDifficulty(option.value)}
+              onClick={() => setDifficultyOverride(option.value)}
               aria-pressed={difficulty === option.value}
               className={`rounded px-3 py-2 ${difficulty === option.value ? 'bg-stone-700 text-white' : 'bg-stone-200'}`}
             >
@@ -65,7 +67,7 @@ export default function ConfigurarPage() {
             <button
               key={option.value}
               type="button"
-              onClick={() => setColor(option.value)}
+              onClick={() => setColorOverride(option.value)}
               aria-pressed={color === option.value}
               className={`rounded px-3 py-2 ${color === option.value ? 'bg-stone-700 text-white' : 'bg-stone-200'}`}
             >

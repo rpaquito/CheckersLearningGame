@@ -88,7 +88,8 @@ export function PageHeader({ logoSize = 'md', wrapperClassName = '', ...titlePro
 }
 
 /**
- * Shared `fixed inset-0` backdrop for GameEndModal/RulesModal/ConfirmModal.
+ * Shared `fixed inset-0` backdrop intended for GameEndModal/RulesModal/
+ * ConfirmModal once they are restyled with the new chrome in a future phase.
  * `pt-`/`pb-` (instead of a flat `p-4`) keep the panel clear of a
  * notch/Dynamic Island once the native iOS shell exists (Phase 11) --
  * `max(1rem, …)` keeps today's usual 1rem margin on any device without a
