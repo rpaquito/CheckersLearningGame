@@ -321,18 +321,15 @@ public/
   manifest.json                 # PWA manifest -- name/icons/display mode
   sw.js                         # offline-caching service worker
   icons/
-    icon-source.svg              # source for icon-192/icon-512/apple-
-                                  # touch-icon/app/icon.png -- a gold
-                                  # checkers-king silhouette reusing
-                                  # pieceStyles/classico.tsx's own shape
-    icon-maskable-source.svg     # same shape, shrunk to fit the W3C
-                                  # maskable-icon safe zone
+    icon-master.png               # full-resolution (1024x1024) accepted
+                                  # Draw Things render -- source for every
+                                  # other file below, committed for reuse
+                                  # by a future native-iOS phase
     icon-192.png, icon-512.png,
     icon-512-maskable.png,
-    apple-touch-icon.png         # PLACEHOLDER art (see Conventions below)
-                                  # -- generated via rsvg-convert, not
-                                  # Draw Things; Phase 10 replaces these
-                                  # exact files with real art
+    apple-touch-icon.png         # real Draw Things art (see Conventions
+                                  # below) -- a crowned checkers-king
+                                  # "sensei" figure
   board/                   # square texture assets for board themes (sakura/
                            # nebulosa/neon) — light/dark pairs, chess-agnostic
                            # and copied from Chess Sensei. Menu background
@@ -1146,19 +1143,26 @@ global seed. Neither file is "testing the detection logic itself" — `settings.
 tests the `useSyncExternalStore` singleton and needs Portuguese only incidentally. Any future
 test file that clears `localStorage` in its own `beforeEach` needs the same stub.
 
-### PWA app icons are functional placeholders, not the real Phase 10 art
+### App icon: real Draw Things art, generated and locked in this phase
 
-`public/icons/icon-192.png`/`icon-512.png`/`icon-512-maskable.png`/`apple-touch-icon.png`
-and `app/icon.png` are all rasterized (via `rsvg-convert`, a one-time system-tool step --
-not an npm dependency) from `public/icons/icon-source.svg`/`icon-maskable-source.svg`: a
-gold checkers-king silhouette reusing `pieceStyles/classico.tsx`'s own disc+rim+crown shape,
-at this app's real ink/gold brand colors. This is deliberately NOT the same situation as
-`lib/settings/themes.ts`'s `fallbackGradient` pattern (a graceful CSS-only stand-in for a
-missing image) -- a broken or missing PWA manifest icon actually breaks installability, so
-these files are real, valid, committed PNGs today, not 404s. Phase 10 (design spec §8/§11)
-replaces these exact files with real Draw Things-generated art at the same paths; no code
-change is needed when it does, since every consumer (`manifest.json`, `app/layout.tsx`'s
-`metadata.icons`, `PageChrome.tsx`'s logo) already points at these final paths.
+`public/icons/icon-192.png`/`icon-512.png`/`icon-512-maskable.png`/`apple-touch-icon.png` and
+`app/icon.png` are real Draw Things-generated art (model `z_image_turbo`, local HTTP API) --
+no longer the PWA phase's hand-drawn SVG placeholder (those source files, `icon-source.svg`/
+`icon-maskable-source.svg`, were deleted once real art replaced their output). The concept —
+a crowned checkers-king "sensei" figure (gold headband, wispy beard, cyan aura, ink background)
+— mirrors Chess Sensei's own approved ivory-pawn mascot exactly, per design spec §8's
+adaptation table. `public/icons/icon-master.png` is the full-resolution (1024×1024) accepted
+render, committed so a future native-iOS phase can populate the iOS `AppIcon.appiconset` by
+resizing it directly, without re-generating art. The maskable variant's safe-zone padding
+(content confined to the centered 80%-diameter circle) was produced via a Pillow composite,
+not a plain resize, and verified against a circular-mask overlay before being accepted --
+see this plan (`docs/superpowers/plans/2026-09-03-app-icon.md`) for the exact pipeline.
+
+Design spec §8's remaining assets (3 background-theme images replacing `themes.ts`'s
+`fallbackGradient` placeholders, 4 home-menu tile illustrations, 3 game-end mascot images)
+and the native iOS Capacitor setup (§11) are each their own separate, later plan -- this
+plan only covers the app icon, deliberately narrow scope (see this plan's own Architecture
+section for why).
 
 ### `ServiceWorkerRegistration.tsx` has no native-platform guard yet -- Phase 10 must add one
 
