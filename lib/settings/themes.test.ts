@@ -13,7 +13,6 @@ describe('BOARD_THEMES', () => {
       expect(BOARD_THEMES[theme]).toBeDefined();
       expect(BOARD_THEMES[theme].light).toMatch(/^\/board\//);
       expect(BOARD_THEMES[theme].dark).toMatch(/^\/board\//);
-      expect(BOARD_THEMES[theme].label.length).toBeGreaterThan(0);
     }
   });
 
@@ -34,7 +33,6 @@ describe('BACKGROUND_THEMES', () => {
       expect(BACKGROUND_THEMES[theme]).toBeDefined();
       expect(BACKGROUND_THEMES[theme].image).toMatch(/^\/menu\//);
       expect(BACKGROUND_THEMES[theme].fallbackGradient.length).toBeGreaterThan(0);
-      expect(BACKGROUND_THEMES[theme].label.length).toBeGreaterThan(0);
     }
   });
 

@@ -33,6 +33,8 @@ export interface Dictionary {
   difficulty: { facil: string; medio: string; dificil: string };
   color: { black: string; white: string; random: string };
   pieceStyleLabel: { classico: string; moderno: string; anime: string };
+  boardThemeLabel: { sakura: string; nebulosa: string; neon: string };
+  backgroundThemeLabel: { templo: string; dojo: string; cosmico: string };
   configurar: { title: string; difficultyLegend: string; colorLegend: string; start: string };
   jogar: {
     turnBlack: string;

@@ -48,14 +48,33 @@ describe('DICTIONARIES', () => {
     }
   });
 
-  it('has genuinely different PT/EN text for every leaf, except documented exceptions (language names, app name, anime style)', () => {
-    const SAME_BY_DESIGN = new Set(['opcoes.portuguese', 'opcoes.english', 'menu.title', 'pieceStyleLabel.anime']);
+  it('has genuinely different PT/EN text for every leaf, except documented exceptions (language names, app name, and established loanwords)', () => {
+    const SAME_BY_DESIGN = new Set([
+      'opcoes.portuguese',
+      'opcoes.english',
+      'menu.title',
+      'pieceStyleLabel.anime',
+      'boardThemeLabel.sakura',
+      'backgroundThemeLabel.dojo',
+    ]);
     const ptLeaves = flattenLeaves(DICTIONARIES.pt);
     const enLeaves = flattenLeaves(DICTIONARIES.en);
     for (const key of Object.keys(ptLeaves)) {
       if (typeof ptLeaves[key] === 'function') continue;
       if (SAME_BY_DESIGN.has(key)) continue;
       expect(enLeaves[key], `${key} is identical in pt and en`).not.toBe(ptLeaves[key]);
+    }
+  });
+
+  it('has board and background theme labels for every theme id', () => {
+    for (const locale of VALID_LOCALES) {
+      const d = DICTIONARIES[locale];
+      expect(d.boardThemeLabel.sakura).toBeTruthy();
+      expect(d.boardThemeLabel.nebulosa).toBeTruthy();
+      expect(d.boardThemeLabel.neon).toBeTruthy();
+      expect(d.backgroundThemeLabel.templo).toBeTruthy();
+      expect(d.backgroundThemeLabel.dojo).toBeTruthy();
+      expect(d.backgroundThemeLabel.cosmico).toBeTruthy();
     }
   });
 

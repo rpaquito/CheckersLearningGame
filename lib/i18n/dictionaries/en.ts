@@ -35,6 +35,8 @@ export const en: Dictionary = {
   difficulty: { facil: 'Easy', medio: 'Medium', dificil: 'Hard' },
   color: { black: 'Black', white: 'White', random: 'Random' },
   pieceStyleLabel: { classico: 'Classic', moderno: 'Modern', anime: 'Anime' },
+  boardThemeLabel: { sakura: 'Sakura', nebulosa: 'Nebula', neon: 'Neon' },
+  backgroundThemeLabel: { templo: 'Temple', dojo: 'Dojo', cosmico: 'Cosmic' },
   configurar: {
     title: 'Play vs computer',
     difficultyLegend: 'Difficulty',

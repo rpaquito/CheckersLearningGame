@@ -1,34 +1,19 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import type { Locale } from '@/lib/i18n/types';
 import type { Difficulty } from '@/lib/checkers/difficulty';
 import type { PlayerColor } from '@/lib/checkers/playerColor';
 import type { BackgroundTheme, BoardTheme, PieceStyle } from '@/lib/settings/settings';
 import { BACKGROUND_THEMES, BOARD_THEMES } from '@/lib/settings/themes';
 import { useSettings } from '@/lib/settings/useSettings';
+import { useTranslation } from '@/lib/i18n/useTranslation';
+import { DICTIONARIES } from '@/lib/i18n/dictionaries';
 import { PieceIcon } from '@/components/CheckersBoard/PieceIcon';
 import { ChipButton } from '@/components/ChipButton/ChipButton';
 import { PageGlow, PageHeader } from '@/components/PageChrome/PageChrome';
 import { ToggleGroup } from '@/components/ToggleGroup/ToggleGroup';
 import { useToast } from '@/components/Toast/ToastProvider';
-
-const DIFFICULTY_OPTIONS: { value: Difficulty; label: string }[] = [
-  { value: 'facil', label: 'Fácil' },
-  { value: 'medio', label: 'Médio' },
-  { value: 'dificil', label: 'Difícil' },
-];
-
-const COLOR_OPTIONS: { value: PlayerColor; label: string }[] = [
-  { value: 'b', label: 'Pretas' },
-  { value: 'w', label: 'Brancas' },
-  { value: 'random', label: 'Aleatório' },
-];
-
-const PIECE_STYLE_OPTIONS: { id: PieceStyle; label: string }[] = [
-  { id: 'classico', label: 'Clássico' },
-  { id: 'moderno', label: 'Moderno' },
-  { id: 'anime', label: 'Anime' },
-];
 
 // Shared button shell for every option picker on this page (board theme,
 // piece style, background) -- only the thumbnail inside changes between
@@ -84,72 +69,112 @@ function ThemeSwatch({ image, image2, fallbackGradient }: { image: string; image
   return <span className="h-16 w-16 rounded bg-cover bg-center" style={{ backgroundImage }} />;
 }
 
-const BOARD_THEME_OPTIONS: { id: BoardTheme; label: string; image: string; image2: string }[] = (
-  Object.keys(BOARD_THEMES) as BoardTheme[]
-).map((id) => ({ id, label: BOARD_THEMES[id].label, image: BOARD_THEMES[id].light, image2: BOARD_THEMES[id].dark }));
-
-const BACKGROUND_THEME_OPTIONS: { id: BackgroundTheme; label: string; image: string; fallbackGradient: string }[] = (
-  Object.keys(BACKGROUND_THEMES) as BackgroundTheme[]
-).map((id) => ({
-  id,
-  label: BACKGROUND_THEMES[id].label,
-  image: BACKGROUND_THEMES[id].image,
-  fallbackGradient: BACKGROUND_THEMES[id].fallbackGradient,
-}));
-
 export default function OpcoesPage() {
   const { settings, updateSettings } = useSettings();
+  const { t } = useTranslation();
   const toast = useToast();
+
+  const difficultyOptions: { value: Difficulty; label: string }[] = [
+    { value: 'facil', label: t.difficulty.facil },
+    { value: 'medio', label: t.difficulty.medio },
+    { value: 'dificil', label: t.difficulty.dificil },
+  ];
+
+  const colorOptions: { value: PlayerColor; label: string }[] = [
+    { value: 'b', label: t.color.black },
+    { value: 'w', label: t.color.white },
+    { value: 'random', label: t.color.random },
+  ];
+
+  const languageOptions: { value: Locale; label: string }[] = [
+    { value: 'pt', label: t.opcoes.portuguese },
+    { value: 'en', label: t.opcoes.english },
+  ];
+
+  const pieceStyleOptions: { id: PieceStyle; label: string }[] = [
+    { id: 'classico', label: t.pieceStyleLabel.classico },
+    { id: 'moderno', label: t.pieceStyleLabel.moderno },
+    { id: 'anime', label: t.pieceStyleLabel.anime },
+  ];
+
+  const boardThemeOptions: { id: BoardTheme; label: string; image: string; image2: string }[] = (
+    Object.keys(BOARD_THEMES) as BoardTheme[]
+  ).map((id) => ({ id, label: t.boardThemeLabel[id], image: BOARD_THEMES[id].light, image2: BOARD_THEMES[id].dark }));
+
+  const backgroundThemeOptions: { id: BackgroundTheme; label: string; image: string; fallbackGradient: string }[] = (
+    Object.keys(BACKGROUND_THEMES) as BackgroundTheme[]
+  ).map((id) => ({
+    id,
+    label: t.backgroundThemeLabel[id],
+    image: BACKGROUND_THEMES[id].image,
+    fallbackGradient: BACKGROUND_THEMES[id].fallbackGradient,
+  }));
 
   return (
     <main className="relative flex flex-col items-center justify-start p-8 overflow-hidden bg-ink">
       <PageGlow pinkOpacity={0.25} />
       <div className="relative w-full max-w-sm">
-        <PageHeader>Opções</PageHeader>
+        <PageHeader>{t.opcoes.title}</PageHeader>
         <p className="mt-3">
           <ChipButton color="purple" href="/">
-            Menu inicial
+            {t.common.mainMenu}
           </ChipButton>
         </p>
       </div>
       <div className="relative flex flex-col gap-6 max-w-sm w-full mt-8">
         <ToggleGroup
-          legend="Dificuldade por omissão"
-          options={DIFFICULTY_OPTIONS}
+          legend={t.opcoes.defaultDifficultyLegend}
+          options={difficultyOptions}
           value={settings.defaultDifficulty}
           onChange={(level) => {
             updateSettings({ defaultDifficulty: level });
-            toast.show('Dificuldade por omissão atualizada.');
+            toast.show(t.opcoes.toastDifficultyChanged);
           }}
         />
 
         <ToggleGroup
-          legend="Cor por omissão"
-          options={COLOR_OPTIONS}
+          legend={t.opcoes.defaultColorLegend}
+          options={colorOptions}
           value={settings.defaultColor}
           onChange={(value) => {
             updateSettings({ defaultColor: value });
-            toast.show('Cor por omissão atualizada.');
+            toast.show(t.opcoes.toastColorChanged);
+          }}
+        />
+
+        <ToggleGroup
+          legend={t.opcoes.language}
+          options={languageOptions}
+          value={settings.language}
+          onChange={(language) => {
+            updateSettings({ language });
+            // Reads the message from the NEWLY selected locale's own
+            // dictionary, not `t` (which is still the pre-update locale's
+            // dictionary -- useSettings()'s store update hasn't re-rendered
+            // this component yet within this same synchronous handler, so
+            // `t.opcoes.toastLanguageChanged` would show the toast in the
+            // language the user just switched AWAY from).
+            toast.show(DICTIONARIES[language].opcoes.toastLanguageChanged);
           }}
         />
 
         <OptionPicker
-          legend="Tema do tabuleiro"
-          options={BOARD_THEME_OPTIONS}
+          legend={t.opcoes.boardTheme}
+          options={boardThemeOptions}
           value={settings.boardTheme}
           onChange={(boardTheme) => {
             updateSettings({ boardTheme });
-            toast.show('Tema do tabuleiro atualizado.');
+            toast.show(t.opcoes.toastBoardThemeChanged);
           }}
           renderPreview={(opt) => <ThemeSwatch image={opt.image} image2={opt.image2} />}
         />
         <OptionPicker
-          legend="Estilo das peças"
-          options={PIECE_STYLE_OPTIONS}
+          legend={t.opcoes.pieceStyle}
+          options={pieceStyleOptions}
           value={settings.pieceStyle}
           onChange={(pieceStyle) => {
             updateSettings({ pieceStyle });
-            toast.show('Estilo das peças atualizado.');
+            toast.show(t.opcoes.toastPieceStyleChanged);
           }}
           renderPreview={(opt) => (
             <span className="flex h-16 w-16 items-center justify-center rounded-lg bg-ink">
@@ -160,12 +185,12 @@ export default function OpcoesPage() {
           )}
         />
         <OptionPicker
-          legend="Imagem de fundo"
-          options={BACKGROUND_THEME_OPTIONS}
+          legend={t.opcoes.backgroundImage}
+          options={backgroundThemeOptions}
           value={settings.backgroundTheme}
           onChange={(backgroundTheme) => {
             updateSettings({ backgroundTheme });
-            toast.show('Imagem de fundo atualizada.');
+            toast.show(t.opcoes.toastBackgroundChanged);
           }}
           renderPreview={(opt) => <ThemeSwatch image={opt.image} fallbackGradient={opt.fallbackGradient} />}
         />
