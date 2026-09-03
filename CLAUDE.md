@@ -1049,6 +1049,47 @@ trainer's international opening names which also stay identical across locales. 
 string pair differs genuinely between locales; the test asserts this with the exception set
 explicitly documented.
 
+### Phase 8b: every page/component now calls `useTranslation()` -- the dictionary is fully wired in
+
+`Settings.language` (built in Plan 8a, previously inert) now has a real, visible effect: every
+page and component that rendered hardcoded Portuguese now reads `t.foo.bar` from
+`useTranslation()` instead, and `/opcoes` gained a real language toggle (`ToggleGroup` over
+`t.opcoes.portuguese`/`t.opcoes.english`, writing `settings.language`). Two deliberate exceptions
+to the "component calls the hook directly" pattern:
+
+- `lib/checkers/gameEndMessage.ts`'s `describeGameEnd` takes an explicit `locale: Locale`
+  parameter instead of calling the hook itself (it isn't a component) -- its one caller,
+  `GameEndModal`, already has `locale` from its own `useTranslation()` call and passes it
+  through. `describeGameEnd` now reads `DICTIONARIES[locale].gameEndMessage` directly rather
+  than owning its own bilingual text, since Plan 8a authored those exact keys for this exact
+  consumer.
+- `components/LineTabs/LineTabs.tsx` takes a `tablistLabel: string` prop rather than calling
+  the hook -- matching the pre-existing pattern of `ToggleGroup`'s `legend`/`OptionPicker`'s
+  `legend`: a generic, reusable UI primitive stays decoupled from i18n and is fed its strings
+  by the caller.
+
+Two gaps stay deliberately unfixed, not overlooked -- there is no correct locale to read for
+either without new infrastructure this plan doesn't build:
+
+- `app/layout.tsx`'s `metadata.description` and `<html lang="pt-PT">` stay hardcoded Portuguese.
+  This app has no backend, no cookies, and no locale-prefixed routing -- `Settings.language`
+  lives only in `localStorage`, which a Server Component (or build-time `metadata` export) has
+  no access to. Fixing this for real means locale-prefixed routes or a synced cookie, which is
+  its own future project, not a retrofit task.
+- `components/CheckersBoard/CheckersBoard.tsx`'s `aria-label={`square ${square}`}` stays English
+  in both locales -- a board-coordinate identifier for assistive tech, not prose, and
+  `CheckersBoard` is deliberately kept fully game/locale-agnostic ("dumb") elsewhere. Translating
+  it would mean threading `locale` into the one component this project has consistently kept
+  free of exactly that kind of dependency.
+
+`lib/settings/themes.ts`'s `BOARD_THEMES`/`BACKGROUND_THEMES` registries dropped their
+`label: string` fields as part of this phase -- display labels for board/background themes now
+live in the dictionary (`Dictionary.boardThemeLabel`/`backgroundThemeLabel`), so the registry
+is asset-paths-only and never needs a locale. `sakura` and `dojo` join `pieceStyleLabel.anime`
+as established-loanword `SAME_BY_DESIGN` exceptions in `dictionaries.test.ts` -- `Néon`/`Neon`,
+`Templo`/`Temple`, and `Cósmico`/`Cosmic` all get real translations, so only those two theme
+names stay identical across locales.
+
 ### A test file whose own `beforeEach` clears `localStorage` after the global seed must re-stub `navigator` itself
 
 The global `vitest.setup.ts` `beforeEach` clears `localStorage` and then seeds it with
