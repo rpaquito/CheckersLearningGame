@@ -137,8 +137,10 @@ lib/settings/
                          # persists so detection only runs once per installation
   themes.ts              # BOARD_THEMES (sakura/nebulosa/neon) and
                          # BACKGROUND_THEMES (templo/dojo/cosmico) registries;
-                         # includes fallbackGradient for background images
-                         # pending real art from Phase 10
+                         # each background theme's fallbackGradient is now a
+                         # defense-in-depth CSS fallback layered under real
+                         # Draw Things art (background-themes phase), not a
+                         # placeholder for missing art
   useSettings.ts         # useSyncExternalStore singleton reading/writing
                          # Settings to localStorage
 components/ChipButton/
@@ -695,16 +697,20 @@ build. (`next.config.ts` additionally sets `output: 'export'`, but only under
 `BUILD_TARGET=capacitor` — the failure does not depend on that; it happens in
 the ordinary build too.)
 
-### Toast/Modal chrome is ported behaviorally, not visually, from Chess Sensei
+### Toast/Modal chrome was ported behaviorally first, then partly gained visual chrome
 
-`Toast`/`ToastProvider`/`ConfirmModal`/`GameEndModal`/`RulesModal` reuse Chess
-Sensei's *shape* (backdrop, `role="dialog"`, focus trap via
-`lib/ui/useFocusTrap.ts`, Escape-to-close) but not its visual chrome: no
-`PageChrome`/`ChipButton` (Phase 5), no `useTranslation`/i18n dictionaries
-(Phase 8), no mascot illustrations or confetti animation on `GameEndModal`
-(Phase 10 — this repo has no `public/gameend/` assets or `animate-confetti-pop`
-keyframe yet). Plain Tailwind, hardcoded Portuguese, matching `/jogar`'s and
-`/configurar`'s established style.
+`Toast`/`ToastProvider`/`ConfirmModal`/`GameEndModal`/`RulesModal` all reuse Chess Sensei's
+*shape* (backdrop, `role="dialog"`, focus trap via `lib/ui/useFocusTrap.ts`, Escape-to-close)
+from day one. Two things this original entry predicted as future work have since landed, each in
+its own later phase: `Toast`/`RulesModal`/`GameEndModal` all call `useTranslation()` directly now
+(`ConfirmModal` stays a generic prop-driven primitive fed translated strings by its caller, same
+pattern as `ToggleGroup`/`LineTabs`) -- see the i18n UI retrofit's own CLAUDE.md entries. And
+`GameEndModal` specifically gained `PageChrome`'s `PageTitle`/`MODAL_BACKDROP_CLASS` plus
+`ChipButton` and a real mascot/confetti (`public/gameend/*.webp`, `animate-confetti-pop`) in the
+gameend-mascots phase -- see that phase's own convention entry above. `ConfirmModal`/`RulesModal`
+remain plain-Tailwind, matching `/jogar`'s/`/configurar`'s own established style (see "stayed
+plain-Tailwind by spec" below for the current, accurate picture of which pages/components have
+the "anime" chrome and which don't).
 
 ### No 'check' toast tone — checkers has no analog
 
@@ -724,14 +730,6 @@ state.lastMove !== null` (a move has actually been made and the game isn't
 already over) — at the very start of a fresh game there's nothing to lose,
 and once the game has ended `GameEndModal`'s own "Jogar novamente"/"Menu
 inicial" already handle that transition without a redundant second prompt.
-
-### `describeGameEnd` has no `locale` parameter yet
-
-Unlike Chess Sensei's `lib/chess/gameEndMessage.ts` (which takes a `Locale`
-and reads from i18n dictionaries), `lib/checkers/gameEndMessage.ts`'s
-`describeGameEnd` hardcodes Portuguese strings directly — no i18n system
-exists in this repo yet (Phase 8). Revisit this function's signature when
-that phase adds a `Locale`/dictionary system.
 
 ### Learning Mode's suggestion strength is a dedicated constant, not `dificil` itself
 
@@ -820,14 +818,15 @@ being graded against it), while the post-move grading effect calls
 
 ### `moveExplanation.ts` is bilingual from day one — a deliberate, narrow exception
 
-Unlike `gameEndMessage.ts`/`RulesModal.tsx` (hardcoded Portuguese, i18n
-deferred to Phase 8), `lib/checkers/moveExplanation.ts` takes an explicit
-`Locale` (`'pt' | 'en'`) parameter and has both phrase sets written now,
-per spec §5's explicit call-out that this module (unlike Chess Sensei's
+Unlike `gameEndMessage.ts`/`RulesModal.tsx` (hardcoded Portuguese at the time,
+i18n deferred to Phase 8), `lib/checkers/moveExplanation.ts` took an explicit
+`Locale` (`'pt' | 'en'`) parameter and had both phrase sets written from the
+start, per spec §5's explicit call-out that this module (unlike Chess Sensei's
 retrofitted `lib/chess/moveExplanation.ts`) should never need a bilingual
-retrofit later. Every call site built in this phase (`app/jogar/page.tsx`)
-still hardcodes `locale: 'pt'` — there is no UI locale toggle anywhere in
-the app yet. Revisit call sites once Phase 8 introduces one.
+retrofit later. That held up: Phase 8b's i18n retrofit later swapped every
+call site (`app/jogar/page.tsx`'s `explainMove`/`describeMoveForToast` calls)
+from a hardcoded `locale: 'pt'` to the real `locale` from `useTranslation()`,
+with no change needed to this module itself.
 
 ### Grading effect uses a mount-lifecycle ref, not a per-render cancelled flag
 
@@ -1021,16 +1020,6 @@ new `boardTheme`/`pieceStyle` props exist and are tested; `/jogar` doesn't
 pass real `settings` values into them yet — it still renders with the default
 `'nebulosa'`/`'classico'`. Wiring those props through in `/jogar` is deferred
 to whichever phase gives `/jogar` its own visual pass.
-
-### `Settings.language` has no auto-detection and no UI control yet
-
-`lib/settings/settings.ts` declares `Settings.language: Locale ('pt' | 'en')`
-and sets its default to `'pt'`, but nothing auto-detects browser locale (unlike
-Chess Sensei's `detectLocale`) and no UI control exists in `/opcoes` to change it.
-The field exists purely for forward-compatibility with Phase 8's i18n system,
-which will add both detection and a language toggle. For now, nothing reads
-`Settings.language` except its default initialization — every UI string is
-hardcoded Portuguese.
 
 ### `/configurar`'s initial difficulty/color reads from `useSettings()` via an "override" pattern
 
@@ -1356,19 +1345,6 @@ Design spec §8's remaining assets (3 background-theme images replacing `themes.
 and the native iOS Capacitor setup (§11) are each their own separate, later plan -- this
 plan only covers the app icon, deliberately narrow scope (see this plan's own Architecture
 section for why).
-
-### `ServiceWorkerRegistration.tsx` has no native-platform guard yet -- Phase 10 must add one
-
-Unlike Chess Sensei's own `ServiceWorkerRegistration.tsx` (which skips registration inside
-its Capacitor shell via `Capacitor.isNativePlatform()`), this repo's version has no such
-guard, because `@capacitor/core` is not yet a dependency -- native iOS is Phase 10 (spec
-§11/§13). Inside a native WKWebView the bundle already ships on disk (`webDir: 'out'`, per
-the Capacitor config Phase 10 will add), so there's nothing for a service worker to cache
-and no reason to risk one behaving oddly inside it. **Phase 10 must port chess's guard**
-(`if (Capacitor.isNativePlatform()) return;` at the top of the registration effect) when
-it adds the Capacitor dependency -- flagged here so it isn't silently forgotten, the same
-way this project already tracks other deliberately-incomplete work (e.g. `RulesModal` built
-but unlinked until its consuming phase).
 
 ### Service worker caching strategy: network-first for navigation/RSC, cache-first for everything else
 
