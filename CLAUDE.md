@@ -332,10 +332,15 @@ public/
                                   # "sensei" figure
   board/                   # square texture assets for board themes (sakura/
                            # nebulosa/neon) — light/dark pairs, chess-agnostic
-                           # and copied from Chess Sensei. Menu background
-                           # images (background-*.webp) are chess-specific and
-                           # are Phase 10 work (see Conventions: Background
-                           # art assumption was false).
+                           # and copied from Chess Sensei.
+  menu/
+    background-templo.webp        # misty mountain temple, warm violet
+    background-dojo.webp          # cherry-blossom courtyard at night, teal
+    background-cosmico.webp       # cosmic nebula, magenta/purple
+                                  # all three: real Draw Things art, layered
+                                  # behind each BACKGROUND_THEMES entry's own
+                                  # fallbackGradient (themes.ts) via CSS --
+                                  # see CLAUDE.md Conventions below
 app/
   icon.png                      # 32x32 browser-tab favicon (Next's file-
                                 # convention icon, auto-linked -- same
@@ -810,20 +815,21 @@ working fine in production builds. A toast can still land a beat after the
 AI's own reply (since grading's worker calls queue behind the AI's), but a
 toast that never arrives is not acceptable.
 
-### Spec §8's background-art claim was verified false during implementation
+### Background theme images: real Draw Things art, generated in this phase
 
-The design spec claims Chess Sensei's three `public/menu/background-*.webp`
-files are "scenic art, no chess imagery" and can be copied unchanged. Direct
-inspection during this plan's research proved this false: `background-templo.webp`
-shows the sensei mascot seated on a floating chessboard surrounded by chess pieces;
-`background-dojo.webp` and `background-cosmico.webp` both center a giant chess
-king piece. Only the six flat `public/board/*.webp` square textures are
-genuinely chess-agnostic and were copied. The three background images are
-real, deferred Draw Things work (Phase 10). In the meantime, `lib/settings/themes.ts`
-defines `BACKGROUND_THEMES` with each theme's `fallbackGradient` layered behind
-the image path via CSS, so `/` and `/opcoes` render an intentional gradient
-today, and no code change is needed once Phase 10 drops real files into the
-`public/menu/` paths.
+`public/menu/background-templo.webp`/`background-dojo.webp`/`background-cosmico.webp` are real
+Draw Things art (model `z_image_turbo`, local HTTP API) -- closing the gap this same entry used
+to document: Chess Sensei's own three background images were verified (during an earlier
+phase's research) to center chess-specific imagery (a giant chess king piece, a floating
+chessboard) and were never copied. Deliberately generated WITHOUT any game piece or mascot
+character in the scene -- three distinct atmosphere/mood pieces (misty mountain temple / warm
+violet, cherry-blossom dojo courtyard at night / cool teal, cosmic nebula / magenta-purple),
+each palette anchored to that theme's own pre-existing `fallbackGradient` in `lib/settings/
+themes.ts` so the real photo reads as a continuation of the gradient rather than a jarring
+swap. No code changed to land these -- `themes.ts` already pointed `BACKGROUND_THEMES` at these
+exact paths, with the `fallbackGradient` kept in place underneath as a defense-in-depth CSS
+fallback (image load failure, slow network) rather than removed now that real files exist.
+See `docs/superpowers/plans/2026-09-03-background-themes.md` for the exact generation pipeline.
 
 ### `/configurar`, `/jogar`, and modals stayed plain-Tailwind by spec
 
