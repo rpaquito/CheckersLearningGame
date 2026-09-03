@@ -116,6 +116,77 @@ describe('GameEndModal', () => {
     expect(link?.getAttribute('href')).toBe('/');
   });
 
+  it('shows the win mascot illustration and confetti when the human wins (ai mode)', () => {
+    render(
+      <GameEndModal
+        open={true}
+        status="no-moves"
+        mode="ai"
+        humanColor="b"
+        turn="w"
+        onClose={() => {}}
+        onPlayAgain={() => {}}
+      />
+    );
+    expect(screen.getByTestId('game-end-mascot')).toHaveStyle({
+      backgroundImage: 'url(/gameend/win.webp)',
+    });
+    expect(document.querySelectorAll('.animate-confetti-pop')).toHaveLength(12);
+  });
+
+  it('shows the lose mascot illustration without confetti when the human loses (ai mode)', () => {
+    render(
+      <GameEndModal
+        open={true}
+        status="no-moves"
+        mode="ai"
+        humanColor="b"
+        turn="b"
+        onClose={() => {}}
+        onPlayAgain={() => {}}
+      />
+    );
+    expect(screen.getByTestId('game-end-mascot')).toHaveStyle({
+      backgroundImage: 'url(/gameend/lose.webp)',
+    });
+    expect(document.querySelectorAll('.animate-confetti-pop')).toHaveLength(0);
+  });
+
+  it('shows the win mascot for a local-mode no-moves result (no losing perspective in local mode)', () => {
+    render(
+      <GameEndModal
+        open={true}
+        status="no-moves"
+        mode="local"
+        humanColor="b"
+        turn="w"
+        onClose={() => {}}
+        onPlayAgain={() => {}}
+      />
+    );
+    expect(screen.getByTestId('game-end-mascot')).toHaveStyle({
+      backgroundImage: 'url(/gameend/win.webp)',
+    });
+  });
+
+  it('shows the draw mascot illustration without confetti for a draw', () => {
+    render(
+      <GameEndModal
+        open={true}
+        status="draw-repetition"
+        mode="local"
+        humanColor="b"
+        turn="w"
+        onClose={() => {}}
+        onPlayAgain={() => {}}
+      />
+    );
+    expect(screen.getByTestId('game-end-mascot')).toHaveStyle({
+      backgroundImage: 'url(/gameend/draw.webp)',
+    });
+    expect(document.querySelectorAll('.animate-confetti-pop')).toHaveLength(0);
+  });
+
   it('shows English text when settings.language is "en"', () => {
     saveSettings({ ...DEFAULT_SETTINGS, language: 'en' });
     render(
