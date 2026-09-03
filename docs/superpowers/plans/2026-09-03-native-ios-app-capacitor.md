@@ -77,13 +77,22 @@ npm run build:capacitor
 
 Expected: exits 0, `out/` exists and contains `index.html`. If this fails, stop and diagnose before proceeding — every later step in this task depends on a working static export (Capacitor copies `webDir` into the native project at creation time).
 
-- [ ] **Step 5: Add the iOS platform**
+- [ ] **Step 5: Add the iOS platform (CocoaPods, not the CLI's SPM default)**
 
 ```bash
-npx cap add ios
+npx cap add ios --packagemanager CocoaPods
 ```
 
-Expected: creates `ios/App/App.xcworkspace`, `ios/App/App/public` (a copy of `out/`), and `ios/App/App/Assets.xcassets/AppIcon.appiconset/`.
+**Real-world correction, found during this plan's own execution:** a plain `npx cap add ios` (no
+flag) on Capacitor 8.5 defaults to Swift Package Manager (`ios/App/CapApp-SPM`, no `Podfile`, no
+`App.xcworkspace` — just `App.xcodeproj`), not CocoaPods. This repo's Global Constraints and
+Task 5's ported `docs/ios-app-store-plan.md` both assume the CocoaPods/`Podfile`/`App.xcworkspace`
+shape (matching Chess Sensei's own project) — the design spec's own line ("CocoaPods package
+manager flag required on `cap add ios`") anticipated exactly this, so use the explicit
+`--packagemanager CocoaPods` flag every time, not the bare command.
+
+Expected: creates `ios/App/App.xcworkspace`, `ios/App/Podfile`/`Podfile.lock`, `ios/App/App/public`
+(a copy of `out/`), and `ios/App/App/Assets.xcassets/AppIcon.appiconset/`.
 
 - [ ] **Step 6: Extend `.gitignore` for iOS build artifacts**
 

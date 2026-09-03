@@ -52,3 +52,11 @@ next-env.d.ts
 # git worktrees — not used in this project (see CLAUDE.md), kept for parity
 # with the twin project's tooling expectations
 .claude/worktrees/
+
+# Capacitor iOS — generated/build artifacts, never hand-edited
+ios/App/App/public
+ios/App/Pods
+ios/App/build
+ios/App/DerivedData
+ios/**/xcuserdata/
+ios/**/*.xcuserstate
