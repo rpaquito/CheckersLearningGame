@@ -1159,6 +1159,14 @@ resizing it directly, without re-generating art. The maskable variant's safe-zon
 not a plain resize, and verified against a circular-mask overlay before being accepted --
 see this plan (`docs/superpowers/plans/2026-09-03-app-icon.md`) for the exact pipeline.
 
+**Lesson for future regenerations** (caught by this plan's final review, fixed in a follow-up
+commit): the maskable composite's canvas fill must sample the actual rendered background color
+from the accepted source image, not the app's literal `#1A0B33` ink token -- Draw Things
+doesn't reproduce a prompted hex color with pixel precision (this render's own background
+sampled ~`(37,14,81)`, visibly lighter/more saturated than the exact token), and filling with
+the exact token instead of the sampled color bakes a faint but real seam into the paste
+boundary. Sample a few corner/edge pixels from the source render itself before compositing.
+
 Design spec §8's remaining assets (3 background-theme images replacing `themes.ts`'s
 `fallbackGradient` placeholders, 4 home-menu tile illustrations, 3 game-end mascot images)
 and the native iOS Capacitor setup (§11) are each their own separate, later plan -- this
