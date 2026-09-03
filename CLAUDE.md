@@ -271,6 +271,17 @@ lib/openings/ (additions in the Openings & Traps Trainer phase)
   data.test.ts               # replays every opening line via replayLine to
                              # verify legality; catches hand-authoring errors
                              # before any page renders the data
+lib/pwa/ (additions in the PWA phase)
+  manifest.test.ts             # verifies public/manifest.json's identity
+                               # fields and that every icon path it
+                               # references resolves to a real file on disk
+components/ServiceWorkerRegistration/
+  ServiceWorkerRegistration.tsx # registers public/sw.js once mounted;
+                                # reloads on a new worker taking control,
+                                # re-checks for updates on tab foreground.
+                                # No native-platform guard yet -- see its
+                                # own doc comment and CLAUDE.md Conventions
+                                # below (Phase 10 must add one).
 components/LineTabs/
   LineTabs.tsx               # tabbed widget for selecting among an opening's
                              # lines (currently all openings have exactly one
@@ -301,12 +312,31 @@ components/OpeningPractice/
                              # White-system/Black-defense split like chess)
   OpeningPractice.test.tsx   # co-located tests
 public/
+  manifest.json                 # PWA manifest -- name/icons/display mode
+  sw.js                         # offline-caching service worker
+  icons/
+    icon-source.svg              # source for icon-192/icon-512/apple-
+                                  # touch-icon/app/icon.png -- a gold
+                                  # checkers-king silhouette reusing
+                                  # pieceStyles/classico.tsx's own shape
+    icon-maskable-source.svg     # same shape, shrunk to fit the W3C
+                                  # maskable-icon safe zone
+    icon-192.png, icon-512.png,
+    icon-512-maskable.png,
+    apple-touch-icon.png         # PLACEHOLDER art (see Conventions below)
+                                  # -- generated via rsvg-convert, not
+                                  # Draw Things; Phase 10 replaces these
+                                  # exact files with real art
   board/                   # square texture assets for board themes (sakura/
                            # nebulosa/neon) — light/dark pairs, chess-agnostic
                            # and copied from Chess Sensei. Menu background
                            # images (background-*.webp) are chess-specific and
                            # are Phase 10 work (see Conventions: Background
                            # art assumption was false).
+app/
+  icon.png                      # 32x32 browser-tab favicon (Next's file-
+                                # convention icon, auto-linked -- same
+                                # source SVG as public/icons/icon-192.png)
 ```
 
 ## Conventions
@@ -1109,6 +1139,59 @@ global seed. Neither file is "testing the detection logic itself" — `settings.
 `navigator` per-test instead, deliberately, since each test needs a different value); `useSettings.test.ts`
 tests the `useSyncExternalStore` singleton and needs Portuguese only incidentally. Any future
 test file that clears `localStorage` in its own `beforeEach` needs the same stub.
+
+### PWA app icons are functional placeholders, not the real Phase 10 art
+
+`public/icons/icon-192.png`/`icon-512.png`/`icon-512-maskable.png`/`apple-touch-icon.png`
+and `app/icon.png` are all rasterized (via `rsvg-convert`, a one-time system-tool step --
+not an npm dependency) from `public/icons/icon-source.svg`/`icon-maskable-source.svg`: a
+gold checkers-king silhouette reusing `pieceStyles/classico.tsx`'s own disc+rim+crown shape,
+at this app's real ink/gold brand colors. This is deliberately NOT the same situation as
+`lib/settings/themes.ts`'s `fallbackGradient` pattern (a graceful CSS-only stand-in for a
+missing image) -- a broken or missing PWA manifest icon actually breaks installability, so
+these files are real, valid, committed PNGs today, not 404s. Phase 10 (design spec §8/§11)
+replaces these exact files with real Draw Things-generated art at the same paths; no code
+change is needed when it does, since every consumer (`manifest.json`, `app/layout.tsx`'s
+`metadata.icons`, `PageChrome.tsx`'s logo) already points at these final paths.
+
+### `ServiceWorkerRegistration.tsx` has no native-platform guard yet -- Phase 10 must add one
+
+Unlike Chess Sensei's own `ServiceWorkerRegistration.tsx` (which skips registration inside
+its Capacitor shell via `Capacitor.isNativePlatform()`), this repo's version has no such
+guard, because `@capacitor/core` is not yet a dependency -- native iOS is Phase 10 (spec
+§11/§13). Inside a native WKWebView the bundle already ships on disk (`webDir: 'out'`, per
+the Capacitor config Phase 10 will add), so there's nothing for a service worker to cache
+and no reason to risk one behaving oddly inside it. **Phase 10 must port chess's guard**
+(`if (Capacitor.isNativePlatform()) return;` at the top of the registration effect) when
+it adds the Capacitor dependency -- flagged here so it isn't silently forgotten, the same
+way this project already tracks other deliberately-incomplete work (e.g. `RulesModal` built
+but unlinked until its consuming phase).
+
+### Service worker caching strategy: network-first for navigation/RSC, cache-first for everything else
+
+`public/sw.js` ports Chess Sensei's own service worker essentially verbatim (only the
+`CACHE_NAME` and its chess-specific comments changed) -- see the file's own extensive doc
+comment for the full reasoning. In short: full-page navigations and Next.js's internal RSC
+"flight" data fetches (`request.headers.get('RSC') === '1'`) go network-first (so a fixed
+bug or updated route tree is never masked by a stale cached response while online); every
+other same-origin GET (hashed `_next/static/` chunks, the checkers engine worker bundle,
+icons, the manifest itself) goes cache-first with a background stale-while-revalidate
+refresh. No build-chunk URLs are precached by a hardcoded list (their hashed filenames
+change every deploy) -- whatever the browser actually requests gets cached at runtime
+instead. Bumping `CACHE_NAME` is what makes a future change to this file's behavior actually
+reach previously-installed clients (`activate` deletes every cache that isn't the current
+name).
+
+### `viewport` export was missing entirely until this phase
+
+`app/layout.tsx` had no `Viewport` export before this phase, meaning `viewport-fit=cover`
+was never actually set in the page's meta tags -- so `env(safe-area-inset-*)` (already used
+by `components/PageChrome/PageChrome.tsx`'s `MODAL_BACKDROP_CLASS`, written assuming it would
+someday work) had been silently returning 0 the whole time. This phase's `viewport` export
+(`themeColor: '#1A0B33'`, `viewportFit: 'cover'`) fixes that as a side effect of adding PWA
+theme-color support -- visually inert on any device without a notch/Dynamic Island, but a
+real, previously-dormant fix that only starts mattering once Phase 10's native iOS shell
+exists.
 
 ## Deploy
 
