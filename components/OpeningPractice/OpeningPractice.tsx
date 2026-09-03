@@ -9,12 +9,14 @@ import { LineTabs } from '@/components/LineTabs/LineTabs';
 import { replayLine } from '@/lib/openings/replayLine';
 import type { Square } from '@/lib/checkers/types';
 import type { Opening } from '@/lib/openings/types';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 const START_BOARD = createInitialBoard();
 const OPPONENT_MOVE_DELAY_MS = 500;
 
 export function OpeningPractice({ opening }: { opening: Opening }) {
-  const tabLines = useMemo(() => opening.lines.map((line) => ({ name: line.name.pt })), [opening]);
+  const { t, locale } = useTranslation();
+  const tabLines = useMemo(() => opening.lines.map((line) => ({ name: line.name[locale] })), [opening, locale]);
   const replayedLines = useMemo(() => opening.lines.map((line) => replayLine(line)), [opening]);
 
   const [lineIndex, setLineIndex] = useState(0);
@@ -81,7 +83,7 @@ export function OpeningPractice({ opening }: { opening: Opening }) {
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <LineTabs lines={tabLines} activeIndex={lineIndex} onSelect={selectLine}>
+      <LineTabs lines={tabLines} activeIndex={lineIndex} onSelect={selectLine} tablistLabel={t.openings.linesTablistLabel}>
         <div className="w-[min(98vw,62dvh,560px)] sm:w-[min(92vw,62dvh,560px)] flex flex-col items-center gap-3">
           <CheckersBoard
             board={board}
@@ -97,13 +99,13 @@ export function OpeningPractice({ opening }: { opening: Opening }) {
 
           {completed ? (
             <div className="w-full rounded-xl border-2 border-gold bg-ink-soft p-4 text-center flex flex-col gap-3" aria-live="polite">
-              <p className="font-semibold text-gold">Linha completa!</p>
+              <p className="font-semibold text-gold">{t.openings.lineComplete}</p>
               <div className="flex flex-wrap gap-3 justify-center">
                 <ChipButton color="pink" onClick={restartLine}>
-                  Praticar outra vez
+                  {t.openings.practiceAgain}
                 </ChipButton>
                 <ChipButton color="purple" href="/aprender/aberturas">
-                  Voltar às aberturas
+                  {t.openings.backToOpenings}
                 </ChipButton>
               </div>
             </div>
@@ -111,12 +113,12 @@ export function OpeningPractice({ opening }: { opening: Opening }) {
             <div className="w-full rounded-xl border-2 border-purple/40 bg-ink-soft p-4 text-center" aria-live="polite">
               {isUserTurn ? (
                 wrongAttempt ? (
-                  <p className="text-lilac/80">Não é esse — o lance da linha é {expected!.notation}. Tenta de novo.</p>
+                  <p className="text-lilac/80">{t.openings.wrongMove(expected!.notation)}</p>
                 ) : (
-                  <p className="text-lilac/80">A tua vez: encontra o lance da linha.</p>
+                  <p className="text-lilac/80">{t.openings.yourTurn}</p>
                 )
               ) : (
-                <p className="text-lilac/80">A pensar…</p>
+                <p className="text-lilac/80">{t.common.thinking}</p>
               )}
             </div>
           )}

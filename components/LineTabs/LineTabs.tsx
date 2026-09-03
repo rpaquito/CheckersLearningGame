@@ -19,11 +19,13 @@ export function LineTabs({
   lines,
   activeIndex,
   onSelect,
+  tablistLabel,
   children,
 }: {
   lines: { name: string }[];
   activeIndex: number;
   onSelect: (index: number) => void;
+  tablistLabel: string;
   children: ReactNode;
 }) {
   const baseId = useId();
@@ -52,7 +54,7 @@ export function LineTabs({
 
   return (
     <>
-      <div className="flex flex-wrap gap-2 justify-start" role="tablist" aria-label="Linhas desta abertura">
+      <div className="flex flex-wrap gap-2 justify-start" role="tablist" aria-label={tablistLabel}>
         {lines.map((line, index) => (
           <button
             key={index}

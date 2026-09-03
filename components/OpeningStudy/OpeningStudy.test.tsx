@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { OpeningStudy } from './OpeningStudy';
 import { OPENINGS } from '@/lib/openings/data';
+import { saveSettings, DEFAULT_SETTINGS } from '@/lib/settings/settings';
 
 const oldFourteenth = OPENINGS.find((o) => o.id === 'old-fourteenth')!;
 
@@ -61,5 +62,13 @@ describe('OpeningStudy', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: 'Linha principal' }));
     expect(screen.getByText('0 / 6')).toBeInTheDocument();
+  });
+
+  it('renders English text when settings.language is "en"', () => {
+    saveSettings({ ...DEFAULT_SETTINGS, language: 'en' });
+    render(<OpeningStudy opening={oldFourteenth} />);
+    expect(screen.getByText(/Starting position/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
   });
 });

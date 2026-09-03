@@ -7,6 +7,7 @@ import { ChipButton } from '@/components/ChipButton/ChipButton';
 import { LineTabs } from '@/components/LineTabs/LineTabs';
 import { replayLine, type ReplayedMove } from '@/lib/openings/replayLine';
 import type { Opening } from '@/lib/openings/types';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 const START_BOARD = createInitialBoard();
 
@@ -18,7 +19,8 @@ function moveLabel(stepIndex: number): string {
 }
 
 export function OpeningStudy({ opening }: { opening: Opening }) {
-  const tabLines = useMemo(() => opening.lines.map((line) => ({ name: line.name.pt })), [opening]);
+  const { t, locale } = useTranslation();
+  const tabLines = useMemo(() => opening.lines.map((line) => ({ name: line.name[locale] })), [opening, locale]);
   const replayedLines = useMemo(() => opening.lines.map((line) => replayLine(line)), [opening]);
   const [lineIndex, setLineIndex] = useState(0);
   const [stepIndex, setStepIndex] = useState(0);
@@ -48,7 +50,7 @@ export function OpeningStudy({ opening }: { opening: Opening }) {
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <LineTabs lines={tabLines} activeIndex={lineIndex} onSelect={selectLine}>
+      <LineTabs lines={tabLines} activeIndex={lineIndex} onSelect={selectLine} tablistLabel={t.openings.linesTablistLabel}>
         <div className="w-[min(98vw,62dvh,560px)] sm:w-[min(92vw,62dvh,560px)] flex flex-col items-center gap-3">
           <CheckersBoard
             board={board}
@@ -67,7 +69,7 @@ export function OpeningStudy({ opening }: { opening: Opening }) {
               onClick={() => goToStep(Math.max(0, stepIndex - 1))}
               disabled={stepIndex === 0}
             >
-              Anterior
+              {t.openings.previous}
             </ChipButton>
             <span className="text-sm text-lilac/80">
               {stepIndex} / {replayed.length}
@@ -78,7 +80,7 @@ export function OpeningStudy({ opening }: { opening: Opening }) {
               onClick={() => goToStep(Math.min(replayed.length, stepIndex + 1))}
               disabled={stepIndex === replayed.length}
             >
-              Seguinte
+              {t.openings.next}
             </ChipButton>
           </div>
 
@@ -88,10 +90,10 @@ export function OpeningStudy({ opening }: { opening: Opening }) {
                 <p className="font-semibold text-cyan">
                   {moveLabel(stepIndex)}{current.notation}
                 </p>
-                <p className="text-lilac/80 mt-1">{current.explanation.pt}</p>
+                <p className="text-lilac/80 mt-1">{current.explanation[locale]}</p>
               </>
             ) : (
-              <p className="text-lilac/80">Posição inicial.</p>
+              <p className="text-lilac/80">{t.openings.startPosition}</p>
             )}
           </div>
         </div>

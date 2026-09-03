@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { OpeningPractice } from './OpeningPractice';
 import { OPENINGS } from '@/lib/openings/data';
 import type { Opening } from '@/lib/openings/types';
+import { saveSettings, DEFAULT_SETTINGS } from '@/lib/settings/settings';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -107,5 +108,11 @@ describe('OpeningPractice', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: 'Linha principal' }));
     expect(screen.getByText('A tua vez: encontra o lance da linha.')).toBeInTheDocument();
+  });
+
+  it('renders English text when settings.language is "en"', () => {
+    saveSettings({ ...DEFAULT_SETTINGS, language: 'en' });
+    render(<OpeningPractice opening={oldFourteenth} />);
+    expect(screen.getByText("Your turn: find the line's move.")).toBeInTheDocument();
   });
 });
