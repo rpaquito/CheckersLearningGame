@@ -29,4 +29,15 @@ describe('OpeningPageHeader', () => {
     expect(screen.getByRole('heading', { name: 'Practice: Old Fourteenth' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Back to study' })).toBeInTheDocument();
   });
+
+  it('renders English text in study mode too -- the practice-mode test above never exercises this branch', () => {
+    saveSettings({ ...DEFAULT_SETTINGS, language: 'en' });
+    render(<OpeningPageHeader opening={oldFourteenth} variant="study" />);
+    expect(screen.getByRole('heading', { name: 'Old Fourteenth' })).toBeInTheDocument();
+    expect(
+      screen.getByText("One of the most studied replies to the game's most popular opening move (11-15), leading to a balanced fight for the center.")
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back to openings' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Practice this opening' })).toBeInTheDocument();
+  });
 });

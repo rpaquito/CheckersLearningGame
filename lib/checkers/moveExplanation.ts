@@ -3,12 +3,13 @@ import { isBackRowFor, squareToRowCol } from './board';
 import { allLegalMoves } from './moveGeneration';
 import type { MoveQuality } from './moveClassification';
 
-// Deliberate exception to this repo's usual "PT-only, i18n deferred to
-// Phase 8" convention (see gameEndMessage.ts, RulesModal.tsx) -- spec §5
-// calls for this specific module to be bilingual from day one, unlike
-// Chess Sensei's retrofitted lib/chess/moveExplanation.ts. Every call site
-// in this phase (app/jogar/page.tsx) still hardcodes 'pt': there is no UI
-// locale toggle yet.
+// This module was bilingual from day one (spec §5), unlike Chess Sensei's
+// retrofitted lib/chess/moveExplanation.ts -- not a retrofit itself, but
+// worth noting it predates the i18n UI retrofit plan (Phase 8b) that later
+// gave gameEndMessage.ts/RulesModal.tsx/app/jogar/page.tsx (and every other
+// page/component) their own useTranslation() wiring and /opcoes a real
+// locale toggle. app/jogar/page.tsx's calls into this module now pass the
+// real locale from useTranslation() instead of a hardcoded 'pt'.
 export type Locale = 'pt' | 'en';
 
 // Mirrors evaluate.ts's private CENTER_COLUMNS -- not imported from there
