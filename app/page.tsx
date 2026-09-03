@@ -10,7 +10,7 @@ import { useTranslation } from '@/lib/i18n/useTranslation';
 // Same "stamped shadow + diagonal clip" visual language as ChipButton, at
 // tile scale, for the four primary actions.
 const TILE_CLASS =
-  'relative flex items-center justify-center h-32 rounded-2xl px-6 overflow-hidden ' +
+  'relative flex items-center justify-center h-32 rounded-2xl px-6 overflow-hidden bg-cover bg-center ' +
   'shadow-[4px_4px_0_rgba(0,0,0,0.35)] [clip-path:polygon(0_0,100%_0,100%_88%,96%_100%,0_100%)] ' +
   'transition-transform hover:scale-[1.02]';
 
@@ -19,15 +19,17 @@ const TILE_LABEL_STROKE = titleStroke(1);
 
 interface TileData {
   href: string;
+  image: string;
   gradient: string;
   emoji: string;
   label: string;
   onClick?: () => void;
 }
 
-function MenuTile({ href, gradient, emoji, label, onClick }: TileData) {
+function MenuTile({ href, image, gradient, emoji, label, onClick }: TileData) {
   return (
-    <Link href={href} onClick={onClick} className={TILE_CLASS} style={{ background: gradient }}>
+    <Link href={href} onClick={onClick} className={TILE_CLASS} style={{ backgroundImage: `url(${image})` }}>
+      <span aria-hidden="true" className="absolute inset-0" style={{ background: gradient }} />
       <span aria-hidden="true" className="absolute top-3 right-4 text-base z-10">
         {emoji}
       </span>
@@ -43,34 +45,38 @@ export default function HomePage() {
   const { t } = useTranslation();
   const theme = BACKGROUND_THEMES[settings.backgroundTheme];
 
-  // No per-tile illustration yet -- Chess Sensei's vs-cpu.webp/two-players.
-  // webp/tutorial.webp/options.webp are chess-specific art; new Draw Things
-  // generation for checkers equivalents is Phase 10. Each tile is its own
-  // gradient instead, in the same 4 accent colors real art will sit behind
-  // once it lands.
+  // Real Draw Things art (Phase 10c) behind each tile, with the tile's own
+  // accent gradient turned translucent and layered on top as a color tint --
+  // ported from Chess Sensei's own app/page.tsx pattern -- so the tile keeps
+  // its accent-color identity and the label stays legible regardless of the
+  // photo underneath.
   const tiles: TileData[] = [
     {
       href: '/configurar',
-      gradient: 'linear-gradient(135deg, #00E5FF, #4EA8DE)',
+      image: '/menu/vs-cpu.webp',
+      gradient: 'linear-gradient(135deg, rgba(0,229,255,0.55), rgba(78,168,222,0.4))',
       emoji: '⚔️',
       label: t.menu.playVsComputer,
     },
     {
       href: '/jogar?mode=local',
-      gradient: 'linear-gradient(135deg, #FF9AC2, #FF6FA5)',
+      image: '/menu/two-players.webp',
+      gradient: 'linear-gradient(135deg, rgba(255,154,194,0.55), rgba(255,111,165,0.4))',
       emoji: '✨',
       label: t.menu.twoPlayers,
       onClick: () => clearSavedGame(),
     },
     {
       href: '/aprender',
-      gradient: 'linear-gradient(135deg, #B87FDB, #7B3FA0)',
+      image: '/menu/tutorial.webp',
+      gradient: 'linear-gradient(135deg, rgba(184,127,219,0.55), rgba(123,63,160,0.4))',
       emoji: '📖',
       label: t.menu.learnToPlay,
     },
     {
       href: '/opcoes',
-      gradient: 'linear-gradient(135deg, #FFE066, #FFD600)',
+      image: '/menu/options.webp',
+      gradient: 'linear-gradient(135deg, rgba(255,224,102,0.55), rgba(255,214,0,0.4))',
       emoji: '⚙️',
       label: t.menu.options,
     },

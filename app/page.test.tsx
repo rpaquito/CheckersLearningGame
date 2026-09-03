@@ -12,6 +12,20 @@ describe('HomePage', () => {
     expect(screen.getByRole('link', { name: /Opções/ })).toHaveAttribute('href', '/opcoes');
   });
 
+  it('renders each tile with its own real menu illustration', () => {
+    render(<HomePage />);
+    expect(screen.getByRole('link', { name: /Jogar contra o computador/ }).style.backgroundImage).toContain(
+      '/menu/vs-cpu.webp'
+    );
+    expect(screen.getByRole('link', { name: /Dois jogadores/ }).style.backgroundImage).toContain(
+      '/menu/two-players.webp'
+    );
+    expect(screen.getByRole('link', { name: /Aprender a jogar/ }).style.backgroundImage).toContain(
+      '/menu/tutorial.webp'
+    );
+    expect(screen.getByRole('link', { name: /Opções/ }).style.backgroundImage).toContain('/menu/options.webp');
+  });
+
   it('renders English tile labels when settings.language is "en"', () => {
     saveSettings({ ...DEFAULT_SETTINGS, language: 'en' });
     render(<HomePage />);
