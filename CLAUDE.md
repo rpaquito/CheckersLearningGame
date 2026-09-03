@@ -287,10 +287,10 @@ components/
                                 # a domain UI component. Registers
                                 # public/sw.js once mounted; reloads on a
                                 # new worker taking control, re-checks for
-                                # updates on tab foreground. No native-
-                                # platform guard yet -- see its own doc
-                                # comment and CLAUDE.md Conventions below
-                                # (Phase 10 must add one).
+                                # updates on tab foreground. Now skips
+                                # registration entirely inside the native
+                                # Capacitor shell (native-iOS phase) -- see
+                                # CLAUDE.md Conventions below.
 components/LineTabs/
   LineTabs.tsx               # tabbed widget for selecting among an opening's
                              # lines (currently all openings have exactly one
@@ -366,6 +366,23 @@ app/
                                 # convention icon, auto-linked -- same
                                 # source render as public/icons/icon-192.png,
                                 # see public/icons/icon-master.png)
+capacitor.config.ts              # appId/appName/webDir for the native iOS
+                                 # shell -- see CLAUDE.md Conventions below
+lib/native/
+  haptics.ts                     # hapticMove/hapticCapture/hapticKinged --
+                                 # no-op unless Capacitor.isNativePlatform()
+  haptics.test.ts                # co-located test (no-op branch only; the
+                                 # real native call is only verifiable
+                                 # on-device)
+ios/                              # native Xcode project, scaffolded via
+                                 # `npx cap add ios --packagemanager
+                                 # CocoaPods` (not hand-authored) -- committed
+                                 # except Pods/build/DerivedData/xcuserdata/
+                                 # App/App/public (see .gitignore)
+docs/
+  ios-app-store-plan.md          # sideload/TestFlight/App-Store-submission
+                                 # path for the user's own follow-up -- see
+                                 # CLAUDE.md Conventions below
 ```
 
 ## Conventions
@@ -905,6 +922,63 @@ deliberate, scoped exception because design spec §8 explicitly calls for a masc
 broader modal-chrome pass; `ConfirmModal`/`RulesModal`/`LearningPanel`/`Toast` are unaffected and
 remain plain-Tailwind. See `docs/superpowers/plans/2026-09-03-gameend-mascots.md` for the exact
 generation pipeline.
+
+### Native iOS shell (Capacitor) — reused verbatim from Chess Sensei, per design spec §11
+
+`@capacitor/core`/`cli`/`ios`/`haptics` wrap the app in a native iOS shell, reusing Chess
+Sensei's own already-shipped pipeline verbatim: `next.config.ts`'s `BUILD_TARGET=capacitor` →
+`output: 'export'` branch (written speculatively in an earlier phase, now actually exercised by
+the new `build:capacitor` npm script), `capacitor.config.ts` (`appId:
+'pt.rpaquito.checkerssensei'` -- distinct from chess's `chesssensei`, effectively permanent once
+submitted to the App Store), and `ios/` (the native Xcode project, committed to git except
+`Pods/`/`build/`/`DerivedData/`/`xcuserdata/`/`App/App/public`, see `.gitignore`).
+
+**The Vercel web build is completely unaffected** -- `BUILD_TARGET=capacitor` is only ever set by
+the new `build:capacitor` script; the GitHub-integration-triggered `npm run build` Vercel actually
+runs never sets it, so `output: 'export'` never activates there.
+
+**Real-world correction found while executing this phase, worth remembering for any future
+`ios/` regeneration:** a bare `npx cap add ios` (no flag) on Capacitor 8.5 defaults to Swift
+Package Manager (`ios/App/CapApp-SPM`, no `Podfile`, no `App.xcworkspace` -- just
+`App.xcodeproj`), not CocoaPods. This project uses `npx cap add ios --packagemanager CocoaPods`
+explicitly, matching Chess Sensei's own project shape (`Podfile`/`Podfile.lock`/
+`App.xcworkspace`) and `docs/ios-app-store-plan.md`'s assumed commands -- if `ios/` is ever
+deleted and regenerated, use the same explicit flag or the sideload instructions stop matching
+reality.
+
+**`ios/App/App/public` (a `cap sync`-regenerated copy of `out/`) breaks both `tsc --noEmit` and
+`npm run lint` if left unexcluded** -- it contains already-bundled/minified JS and a copy of
+source `.ts` files kept for source maps, none of which this repo owns or wants type-checked/
+linted. `tsconfig.json`'s `"exclude"` now includes `"ios"` (alongside the pre-existing `"out"`),
+and `eslint.config.mjs` has `globalIgnores(["ios/"])` -- both were previously either missing or
+(for ESLint) explicitly flagged with a "not yet" comment predicting this exact moment.
+
+`lib/native/haptics.ts` exports `hapticMove()`/`hapticCapture()`/`hapticKinged()`, each a no-op
+unless `Capacitor.isNativePlatform()`. **`hapticKinged` is this app's own departure from Chess
+Sensei's `hapticCheck`** -- checkers has no "check" concept; promotion (a man becoming a king) is
+the natural checkers-specific "distinct big moment" instead (design spec §11). All three fire only
+from `app/jogar/page.tsx`'s `handleSquareClick` (the human player's own move), never from the AI's
+automatic reply or a Learning Mode suggestion -- `hapticKinged`/`hapticCapture`/`hapticMove` are
+chosen by looking up the full `CheckersMove` (via `legalMovesFrom` from `moveGeneration.ts`, not
+the hook's own square-only `legalMovesFrom`) matched by `to`, *before* calling `makeMove` --
+subject to the same rare first-match-wins ambiguity CLAUDE.md's "`makeMove`'s return value" entry
+already documents for multi-route-same-destination captures, accepted for the same reason (still
+fires a correct-in-spirit haptic category).
+
+`components/ServiceWorkerRegistration.tsx` now has the native-platform guard its own doc comment
+had predicted since the PWA phase (`if (Capacitor.isNativePlatform()) return;`, checked before the
+existing `serviceWorker` feature-detect) -- inside the native shell the bundle already ships on
+disk (`webDir: 'out'`), so there's nothing for a service worker to cache.
+
+**No rebrand or icon-production task was needed** (unlike Chess Sensei's own native-iOS plan) --
+"Checkers Sensei" was already the name everywhere, and `public/icons/icon-master.png` already
+existed as real, accepted Draw Things art from the `app-icon` phase (Phase 10a).
+
+**This plan deliberately stopped before Xcode signing / on-device steps** -- verified only via a
+non-interactive `xcodebuild -sdk iphonesimulator` compile check (`** BUILD SUCCEEDED **`, no
+signing needed). Getting the app onto a real iPhone, TestFlight, and eventual App Store submission
+are the user's own follow-up, documented in `docs/ios-app-store-plan.md`. See
+`docs/superpowers/plans/2026-09-03-native-ios-app-capacitor.md` for the full task breakdown.
 
 ### `/configurar`, `/jogar`, and modals stayed plain-Tailwind by spec
 
