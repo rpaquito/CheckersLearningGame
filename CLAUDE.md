@@ -19,10 +19,13 @@ is the historical design record and isn't updated after the fact.
   committed directly to `main` and pushed immediately (`git push origin
   main`) once its tests pass — never batch multiple tasks into one unpushed
   commit.
-- **Vercel**: project `checkers-learning-game` (to be created), team
-  `algorithm-cloud` (same team as Chess Sensei). Deploy is Vercel-only,
-  auto-deploy on push to `main` via the GitHub integration once the project
-  exists — no local `vercel deploy` needed for normal work.
+- **Vercel**: project `checkers-learning-game` (created 2026-09-03, live at
+  https://checkers-learning-game.vercel.app), team `algorithm-cloud` (same
+  team as Chess Sensei), linked to `rpaquito/CheckersLearningGame`'s GitHub
+  integration. Deploy is Vercel-only, auto-deploy on push to `main` — no
+  local `vercel deploy` needed for normal work. See CLAUDE.md's "Vercel
+  deploy" convention entry for the one-time GitHub App authorization gap
+  that had to be resolved manually before the project could be created.
 - **GitHub**: `rpaquito/CheckersLearningGame`, `origin` remote already
   configured.
 - **This file**: updated at the end of every implementation-plan phase with
@@ -979,6 +982,29 @@ non-interactive `xcodebuild -sdk iphonesimulator` compile check (`** BUILD SUCCE
 signing needed). Getting the app onto a real iPhone, TestFlight, and eventual App Store submission
 are the user's own follow-up, documented in `docs/ios-app-store-plan.md`. See
 `docs/superpowers/plans/2026-09-03-native-ios-app-capacitor.md` for the full task breakdown.
+
+### Vercel deploy (design spec §13 phase 11) — the GitHub App needed a one-time manual authorization
+
+The `checkers-learning-game` Vercel project (team `algorithm-cloud`) did not exist before this
+phase -- `create_git_project` (the same MCP tool used for other projects on this account) first
+failed with `bad_request: "To link a GitHub repository, you need to install the GitHub
+integration first"`, even though Vercel's GitHub App was already installed and working for the
+sibling Chess Sensei repo. **Each repository needs its own explicit grant** under the Vercel
+GitHub App's installation settings (https://github.com/apps/vercel) -- this is not something an
+API call can do on the user's behalf; the user granted it manually, after which project creation
+succeeded on retry with no other changes. Worth remembering for any future repo this account
+wants to deploy: don't assume an existing GitHub App installation covers a brand-new repo.
+
+The resulting first deployment built and went live with zero code changes needed -- confirms the
+`next.config.ts`/`BUILD_TARGET` split from the native-iOS phase is inert by default (Vercel's own
+`npm run build` never sets `BUILD_TARGET=capacitor`) and that this app genuinely has no
+environment variables to configure (no backend, no auth, no API routes, per this file's own
+"Deploy" section). Verified live: `/`, `/jogar`, `/opcoes`, `/aprender`, `/manifest.json`, and
+`/sw.js` all return `200` at https://checkers-learning-game.vercel.app, and the page title reads
+"Checkers Sensei" as expected.
+
+This closes design spec §13's entire phase list (0 through 11) -- every phase in the original
+build plan has now shipped.
 
 ### `/configurar`, `/jogar`, and modals stayed plain-Tailwind by spec
 
