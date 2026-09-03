@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslation } from '@/lib/i18n/useTranslation';
+
 export interface LearningPanelProps {
   enabled: boolean;
   onToggle: () => void;
@@ -14,9 +16,6 @@ export interface LearningPanelProps {
   suggestionExplanation: string | null;
 }
 
-// Plain Tailwind, hardcoded Portuguese -- matches every other /jogar
-// component so far (no PageChrome/ChipButton until Phase 5, no i18n until
-// Phase 8).
 export function LearningPanel({
   enabled,
   onToggle,
@@ -26,10 +25,11 @@ export function LearningPanel({
   hasSuggestion,
   suggestionExplanation,
 }: LearningPanelProps) {
+  const { t } = useTranslation();
   return (
     <div className="flex w-full max-w-md flex-col items-center gap-2">
       <button type="button" onClick={onToggle} className="underline">
-        {enabled ? 'Desativar modo de aprendizagem' : 'Ativar modo de aprendizagem'}
+        {enabled ? t.learningPanel.disable : t.learningPanel.enable}
       </button>
       {enabled && (
         <div className="flex flex-col items-center gap-2">
@@ -39,7 +39,7 @@ export function LearningPanel({
             disabled={!canRequestSuggestion || suggestionLoading}
             className="rounded-xl border-2 border-violet-400 bg-white px-4 py-1 text-sm font-medium text-stone-900 disabled:opacity-50"
           >
-            {suggestionLoading ? 'A calcular…' : 'Sugerir jogada'}
+            {suggestionLoading ? t.learningPanel.suggestionLoading : t.learningPanel.suggestMove}
           </button>
           {hasSuggestion && suggestionExplanation && (
             <p className="text-center text-sm text-stone-700">{suggestionExplanation}</p>

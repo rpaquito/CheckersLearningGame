@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { LearningPanel } from './LearningPanel';
+import { saveSettings, DEFAULT_SETTINGS } from '@/lib/settings/settings';
 
 const baseProps = {
   enabled: true,
@@ -56,5 +57,11 @@ describe('LearningPanel', () => {
   it('shows the suggestion explanation once one exists', () => {
     render(<LearningPanel {...baseProps} hasSuggestion={true} suggestionExplanation="Captura uma peça." />);
     expect(screen.getByText('Captura uma peça.')).not.toBeNull();
+  });
+
+  it('shows English labels when settings.language is "en"', () => {
+    saveSettings({ ...DEFAULT_SETTINGS, language: 'en' });
+    render(<LearningPanel {...baseProps} enabled={false} />);
+    expect(screen.getByText('Enable learning mode')).not.toBeNull();
   });
 });

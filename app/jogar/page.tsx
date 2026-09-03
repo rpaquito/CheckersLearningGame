@@ -16,6 +16,7 @@ import { gradeMove } from '@/lib/checkers/gradeMove';
 import { explainMove, describeMoveForToast } from '@/lib/checkers/moveExplanation';
 import { LearningPanel } from '@/components/LearningPanel/LearningPanel';
 import { useToast } from '@/components/Toast/ToastProvider';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 import type { Board, CheckersMove, Color, Square } from '@/lib/checkers/types';
 
 function isDifficulty(value: string | null): value is Difficulty {
@@ -44,6 +45,7 @@ function JogarPageInner() {
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
 
   const { show } = useToast();
+  const { t, locale } = useTranslation();
   const [learningModeEnabled, toggleLearningMode] = useLearningModePreference();
   const [suggestedMove, setSuggestedMove] = useState<CheckersMove | null>(null);
   const [suggestionExplanation, setSuggestionExplanation] = useState<string | null>(null);
@@ -199,7 +201,7 @@ function JogarPageInner() {
           boardBeforeMove: pending.boardBeforeMove,
           boardAfterMove,
           moverColor: pending.moverColor,
-          locale: 'pt',
+          locale,
         });
         show(message, quality);
       })
@@ -250,7 +252,7 @@ function JogarPageInner() {
             boardBeforeMove: state.board,
             boardAfterMove: applyMove(state.board, move),
             moverColor: state.turn,
-            locale: 'pt',
+            locale,
           }),
         );
       })
@@ -309,13 +311,13 @@ function JogarPageInner() {
     setConfirmAction(null);
   }
 
-  const turnLabel = state.turn === 'b' ? 'Vez das pretas' : 'Vez das brancas';
+  const turnLabel = state.turn === 'b' ? t.jogar.turnBlack : t.jogar.turnWhite;
   const boardInteractive = !state.isGameOver && !(isAiMode && state.turn === aiColor);
 
   let statusText: string;
-  if (state.isGameOver) statusText = 'Fim de jogo';
-  else if (engineError) statusText = 'Erro no motor de jogo — reinicie a partida';
-  else if (isAiTurn) statusText = 'A pensar...';
+  if (state.isGameOver) statusText = t.jogar.gameOver;
+  else if (engineError) statusText = t.jogar.engineUnavailable;
+  else if (isAiTurn) statusText = t.common.thinking;
   else statusText = turnLabel;
 
   return (
@@ -343,10 +345,10 @@ function JogarPageInner() {
       />
       <div className="flex gap-4">
         <Link href="/" className="underline" onClick={handleMenuClick}>
-          Menu inicial
+          {t.common.mainMenu}
         </Link>
         <button type="button" onClick={handleRestartClick} className="underline">
-          Reiniciar partida
+          {t.jogar.restart}
         </button>
       </div>
 
@@ -361,10 +363,10 @@ function JogarPageInner() {
       />
       <ConfirmModal
         open={confirmAction !== null && hasProgressToLose}
-        title={confirmAction === 'restart' ? 'Reiniciar partida?' : 'Sair para o menu?'}
-        message="Vais perder o progresso desta partida."
-        confirmLabel={confirmAction === 'restart' ? 'Reiniciar' : 'Sair'}
-        cancelLabel="Cancelar"
+        title={confirmAction === 'restart' ? t.jogar.confirmRestartTitle : t.jogar.confirmMenuTitle}
+        message={confirmAction === 'restart' ? t.jogar.confirmRestartMessage : t.jogar.confirmMenuMessage}
+        confirmLabel={confirmAction === 'restart' ? t.jogar.confirmRestartButton : t.jogar.confirmMenuButton}
+        cancelLabel={t.common.cancel}
         onConfirm={handleConfirmAction}
         onCancel={handleCancelConfirm}
       />
