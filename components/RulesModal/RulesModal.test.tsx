@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { RulesModal } from './RulesModal';
+import { saveSettings, DEFAULT_SETTINGS } from '@/lib/settings/settings';
 
 describe('RulesModal', () => {
   it('renders nothing when closed', () => {
@@ -43,5 +44,13 @@ describe('RulesModal', () => {
     const { container } = render(<RulesModal open={true} onClose={onClose} />);
     fireEvent.click(container.querySelector('[data-testid="rules-modal-backdrop"]')!);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows English text when settings.language is "en"', () => {
+    saveSettings({ ...DEFAULT_SETTINGS, language: 'en' });
+    render(<RulesModal open={true} onClose={() => {}} />);
+    expect(screen.getByRole('heading', { name: 'Game rules', level: 2 })).toBeInTheDocument();
+    expect(screen.getByText('Movement')).not.toBeNull();
+    expect(screen.getByText('Mandatory capture', { selector: 'h3' })).not.toBeNull();
   });
 });

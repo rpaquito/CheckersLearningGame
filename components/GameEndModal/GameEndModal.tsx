@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { Color, GameStatus } from '@/lib/checkers/types';
 import { describeGameEnd } from '@/lib/checkers/gameEndMessage';
 import { useFocusTrap } from '@/lib/ui/useFocusTrap';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 export interface GameEndModalProps {
   open: boolean;
@@ -28,6 +29,7 @@ const KIND_ACCENT: Record<'win' | 'lose' | 'draw', string> = {
 // Text/button only in this plan -- no mascot illustration or confetti
 // (Phase 10, see this plan's Global Constraints).
 export function GameEndModal({ open, status, mode, humanColor, turn, onClose, onPlayAgain }: GameEndModalProps) {
+  const { t, locale } = useTranslation();
   const panelRef = useFocusTrap(open);
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export function GameEndModal({ open, status, mode, humanColor, turn, onClose, on
   }, [open, onClose]);
 
   if (!open) return null;
-  const result = describeGameEnd(status, mode, humanColor, turn);
+  const result = describeGameEnd(status, mode, humanColor, turn, locale);
   if (!result) return null;
   const { title, kind } = result;
 
@@ -64,7 +66,7 @@ export function GameEndModal({ open, status, mode, humanColor, turn, onClose, on
           <button
             type="button"
             onClick={onClose}
-            aria-label="Fechar"
+            aria-label={t.common.close}
             className="rounded-full h-8 w-8 shrink-0 bg-stone-200 font-bold hover:scale-110 transition-transform"
           >
             ✕
@@ -76,10 +78,10 @@ export function GameEndModal({ open, status, mode, humanColor, turn, onClose, on
             onClick={onPlayAgain}
             className="rounded-xl bg-emerald-600 px-4 py-2 font-bold text-white"
           >
-            Jogar novamente
+            {t.gameEndModal.playAgain}
           </button>
           <Link href="/" className="rounded-xl bg-stone-200 px-4 py-2 font-bold text-stone-900">
-            Menu inicial
+            {t.common.mainMenu}
           </Link>
         </div>
       </div>

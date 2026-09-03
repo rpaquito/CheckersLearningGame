@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Toast } from './Toast';
+import { saveSettings, DEFAULT_SETTINGS } from '@/lib/settings/settings';
 
 describe('Toast', () => {
   it('renders nothing visible when toast is null', () => {
@@ -28,5 +29,11 @@ describe('Toast', () => {
     rerender(<Toast toast={{ id: 2, message: 'Mesma mensagem', tone: 'info' }} onDismiss={() => {}} />);
     const secondCard = container.querySelector('[data-testid="toast-card"]');
     expect(secondCard).not.toBe(firstCard);
+  });
+
+  it('shows the English close label when settings.language is "en"', () => {
+    saveSettings({ ...DEFAULT_SETTINGS, language: 'en' });
+    render(<Toast toast={{ id: 1, message: 'Good move!', tone: 'boa' }} onDismiss={() => {}} />);
+    expect(screen.getByLabelText('Close')).not.toBeNull();
   });
 });

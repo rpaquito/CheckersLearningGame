@@ -1,6 +1,7 @@
 'use client';
 
 import type { MoveQuality } from '@/lib/checkers/moveClassification';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 // 'boa'/'imprecisao'/'erro' (MoveQuality) reused as tones -- this toast is
 // how Phase 4b (learning mode) will surface last-move-quality feedback,
@@ -37,6 +38,7 @@ const TONE_ACCENT: Record<ToastTone, string> = {
 // "Boa jogada!" toasts in a row would otherwise not re-announce to screen
 // readers or show a visible repaint on the second call).
 export function Toast({ toast, onDismiss }: ToastProps) {
+  const { t } = useTranslation();
   return (
     <div
       role="status"
@@ -53,7 +55,7 @@ export function Toast({ toast, onDismiss }: ToastProps) {
           <button
             type="button"
             onClick={onDismiss}
-            aria-label="Fechar"
+            aria-label={t.common.close}
             className="rounded-full h-6 w-6 shrink-0 bg-stone-200 font-bold hover:scale-110 transition-transform"
           >
             ✕

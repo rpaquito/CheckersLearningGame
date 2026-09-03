@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { GameEndModal } from './GameEndModal';
+import { saveSettings, DEFAULT_SETTINGS } from '@/lib/settings/settings';
 
 describe('GameEndModal', () => {
   it('renders nothing when closed', () => {
@@ -113,5 +114,23 @@ describe('GameEndModal', () => {
     );
     const link = screen.getByText('Menu inicial').closest('a');
     expect(link?.getAttribute('href')).toBe('/');
+  });
+
+  it('shows English text when settings.language is "en"', () => {
+    saveSettings({ ...DEFAULT_SETTINGS, language: 'en' });
+    render(
+      <GameEndModal
+        open={true}
+        status="no-moves"
+        mode="local"
+        humanColor="b"
+        turn="w"
+        onClose={() => {}}
+        onPlayAgain={() => {}}
+      />
+    );
+    expect(screen.getByText('Black wins — White has no moves left')).toBeInTheDocument();
+    expect(screen.getByText('Play again')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Main menu' })).toBeInTheDocument();
   });
 });
