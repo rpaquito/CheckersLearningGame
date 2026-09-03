@@ -58,7 +58,7 @@ export const en: Dictionary = {
     enable: 'Enable learning mode',
     disable: 'Disable learning mode',
     suggestMove: 'Suggest move',
-    suggestionLoading: 'Calculating...',
+    suggestionLoading: 'Calculating…',
   },
   rulesModal: {
     title: 'Game rules',
@@ -151,7 +151,7 @@ export const en: Dictionary = {
       },
       {
         title: 'Keep your back row',
-        text: "Pieces that stay on your own back row delay the opponent's kings from being crowned -- don't advance them needlessly in the opening.",
+        text: "Pieces that stay on your own back row delay the opponent from crowning kings -- don't advance them needlessly in the opening.",
       },
       {
         title: 'Avoid the side columns',
@@ -189,7 +189,7 @@ export const en: Dictionary = {
     disclaimer: "These openings' names and classifications are informational, not verified by a checkers federation.",
     backToOpenings: 'Back to openings',
     practiceThisOpening: 'Practice this opening',
-    practicePrefix: 'Practice: ',
+    practiceTitle: (name: string) => `Practice: ${name}`,
     backToStudy: 'Back to study',
     linesTablistLabel: 'Lines in this opening',
     previous: 'Previous',

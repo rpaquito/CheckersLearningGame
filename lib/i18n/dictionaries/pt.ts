@@ -58,7 +58,7 @@ export const pt: Dictionary = {
     enable: 'Ativar modo de aprendizagem',
     disable: 'Desativar modo de aprendizagem',
     suggestMove: 'Sugerir jogada',
-    suggestionLoading: 'A calcular...',
+    suggestionLoading: 'A calcular…',
   },
   rulesModal: {
     title: 'Regras do jogo',
@@ -189,7 +189,7 @@ export const pt: Dictionary = {
     disclaimer: 'Os nomes e classificações destas aberturas são informativos, não verificados por uma federação de damas.',
     backToOpenings: 'Voltar às aberturas',
     practiceThisOpening: 'Praticar esta abertura',
-    practicePrefix: 'Praticar: ',
+    practiceTitle: (name: string) => `Praticar: ${name}`,
     backToStudy: 'Voltar ao estudo',
     linesTablistLabel: 'Linhas desta abertura',
     previous: 'Anterior',

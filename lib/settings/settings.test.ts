@@ -1,7 +1,14 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { loadSettings, saveSettings, DEFAULT_SETTINGS } from './settings';
 
 const STORAGE_KEY = 'checkers-settings';
+
+// File-wide, not per-describe: without this, a `vi.stubGlobal('navigator', ...)`
+// from one describe block's beforeEach silently leaks into whichever block
+// runs next (Vitest does not auto-restore stubbed globals between tests).
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe('loadSettings', () => {
   beforeEach(() => {
@@ -97,6 +104,16 @@ describe('loadSettings — language auto-detection', () => {
     expect(settings.language).toBe('en');
     const saved = JSON.parse(window.localStorage.getItem('checkers-settings')!);
     expect(saved.language).toBe('en');
+  });
+
+  it('a brand-new installation persists only the detected language, not every other default', () => {
+    vi.stubGlobal('navigator', { language: 'en-US' });
+    loadSettings();
+    const saved = JSON.parse(window.localStorage.getItem('checkers-settings')!);
+    // Only `language` should be written -- freezing the other fields'
+    // current defaults into storage would silently outlive a future
+    // DEFAULT_SETTINGS change for this installation.
+    expect(Object.keys(saved)).toEqual(['language']);
   });
 
   it('detects Portuguese when the browser asks for Portuguese', () => {

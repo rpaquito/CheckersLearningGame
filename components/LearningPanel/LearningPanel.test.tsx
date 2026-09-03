@@ -50,7 +50,7 @@ describe('LearningPanel', () => {
 
   it('disables the suggestion button and shows a loading label while loading', () => {
     render(<LearningPanel {...baseProps} suggestionLoading={true} />);
-    expect(screen.getByText('A calcular...')).toBeDisabled();
+    expect(screen.getByText('A calcular…')).toBeDisabled();
   });
 
   it('shows the suggestion explanation once one exists', () => {

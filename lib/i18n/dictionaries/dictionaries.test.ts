@@ -65,4 +65,23 @@ describe('DICTIONARIES', () => {
     expect(DICTIONARIES.pt.openings.wrongMove('11-15')).toContain('11-15');
     expect(DICTIONARIES.en.openings.wrongMove('11-15')).toContain('11-15');
   });
+
+  it('formats openings.practiceTitle identically in shape between locales (both are functions)', () => {
+    expect(typeof DICTIONARIES.pt.openings.practiceTitle).toBe('function');
+    expect(typeof DICTIONARIES.en.openings.practiceTitle).toBe('function');
+    expect(DICTIONARIES.pt.openings.practiceTitle('Old Fourteenth')).toContain('Old Fourteenth');
+    expect(DICTIONARIES.en.openings.practiceTitle('Old Fourteenth')).toContain('Old Fourteenth');
+  });
+
+  // The main "different text" check above skips function leaves entirely
+  // (it can't call an arbitrary function with the right args generically),
+  // so a straight pt->en copy-paste of a message-builder function would
+  // otherwise pass every other check in this file undetected. Every
+  // single-arg function leaf gets its own explicit inequality check here.
+  it('produces genuinely different PT/EN text from every function leaf, given the same argument', () => {
+    expect(DICTIONARIES.en.openings.wrongMove('11-15')).not.toBe(DICTIONARIES.pt.openings.wrongMove('11-15'));
+    expect(DICTIONARIES.en.openings.practiceTitle('Old Fourteenth')).not.toBe(
+      DICTIONARIES.pt.openings.practiceTitle('Old Fourteenth')
+    );
+  });
 });

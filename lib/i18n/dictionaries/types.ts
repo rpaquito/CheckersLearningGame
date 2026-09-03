@@ -124,7 +124,7 @@ export interface Dictionary {
     disclaimer: string;
     backToOpenings: string;
     practiceThisOpening: string;
-    practicePrefix: string;
+    practiceTitle: (name: string) => string;
     backToStudy: string;
     linesTablistLabel: string;
     previous: string;

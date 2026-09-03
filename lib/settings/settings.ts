@@ -92,7 +92,25 @@ export function loadSettings(): Settings {
 
     // Only saves if detection actually ran (language wasn't already
     // stored) -- doesn't re-write on every load once a real value exists.
-    if (!languageWasStored) saveSettings(result);
+    // Persists just the raw candidate plus the detected language, NOT the
+    // fully-defaulted `result` -- writing `result` would freeze every
+    // other field's CURRENT default into storage on a brand-new visitor's
+    // very first load, so a future DEFAULT_SETTINGS change (e.g. a
+    // retuned boardTheme) would silently never reach anyone who already
+    // visited once. Fields the user never actually chose stay absent from
+    // storage and keep resolving to whatever DEFAULT_SETTINGS says at
+    // read time. Deliberately bypasses saveSettings (which requires a
+    // complete, already-defaulted Settings) and writes the partial object
+    // directly, matching its own try/catch-and-swallow behavior for a
+    // localStorage write that can't be allowed to throw.
+    if (!languageWasStored) {
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...candidate, language }));
+      } catch {
+        // localStorage unavailable (private mode, full quota) -- detection
+        // just re-runs next load, nothing else in the app breaks.
+      }
+    }
 
     return result;
   } catch {

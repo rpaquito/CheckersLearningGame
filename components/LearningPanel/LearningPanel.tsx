@@ -39,7 +39,7 @@ export function LearningPanel({
             disabled={!canRequestSuggestion || suggestionLoading}
             className="rounded-xl border-2 border-violet-400 bg-white px-4 py-1 text-sm font-medium text-stone-900 disabled:opacity-50"
           >
-            {suggestionLoading ? 'A calcular...' : 'Sugerir jogada'}
+            {suggestionLoading ? 'A calcular…' : 'Sugerir jogada'}
           </button>
           {hasSuggestion && suggestionExplanation && (
             <p className="text-center text-sm text-stone-700">{suggestionExplanation}</p>

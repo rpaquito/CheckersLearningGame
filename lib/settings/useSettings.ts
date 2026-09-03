@@ -29,6 +29,13 @@ export interface UseSettingsResult {
 let cache: Settings | null = null;
 const listeners = new Set<() => void>();
 
+// Called during React's render phase (useSyncExternalStore's contract),
+// which should stay side-effect-free -- but on a first-ever call this
+// transitively runs loadSettings()'s one-time localStorage write when
+// language auto-detection fires (see settings.ts). Accepted as benign: the
+// `cache === null` guard above means it can only happen once per module
+// lifetime, the write is deterministic/idempotent, and a discarded
+// concurrent render just leaves the same correct value persisted.
 function getSnapshot(): Settings {
   if (cache === null) cache = loadSettings();
   return cache;

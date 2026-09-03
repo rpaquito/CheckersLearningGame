@@ -990,6 +990,27 @@ repo actually uses the dictionary yet** — `useSettings().settings.language` ca
 that retrofit plan lands. The dictionary is fully validated and complete; it's just not
 consumed anywhere yet.
 
+**Known coverage gaps for Plan 8b to solve, not to rediscover mid-retrofit** (found by this
+plan's final review, deliberately left unfixed here since fixing them means adding scope this
+plan didn't own):
+
+- `lib/settings/themes.ts`'s `BOARD_THEMES`/`BACKGROUND_THEMES` registries carry their own
+  hardcoded Portuguese `label` fields (`'Néon'`, `'Cósmico'`, etc.) rendered directly in
+  `/opcoes` — the dictionary has no `boardThemeLabel`/`backgroundThemeLabel` keys for these,
+  unlike the parallel `pieceStyleLabel` case (`classico`/`moderno`/`anime`), which the
+  dictionary does cover. Plan 8b needs new keys plus a `themes.ts` refactor to stop storing
+  `label` alongside asset paths.
+- `app/layout.tsx`'s `metadata.description` and `<html lang="pt-PT">` are hardcoded and can't
+  read a client hook (`useTranslation` is `'use client'`-only) — these need a different
+  mechanism than the rest of the retrofit, or an explicit decision to leave them
+  Portuguese-only.
+- `app/aprender/aberturas/page.tsx` reads `opening.name.pt`/`description.pt` directly (no
+  locale toggle existed when the openings trainer was built) — needs to switch to
+  `useTranslation()`'s `locale` once one exists.
+- `components/CheckersBoard/CheckersBoard.tsx`'s `aria-label={`square ${square}`}` is already
+  English text inside an otherwise-Portuguese app — worth a deliberate decision (translate it,
+  or leave `aria-label`s English-only) rather than an oversight either way.
+
 ### Global test-locale seed: vitest.setup.ts seeds Portuguese before every test
 
 `vitest.setup.ts`'s `beforeEach` now calls `window.localStorage.setItem('checkers-settings',
@@ -1028,19 +1049,25 @@ trainer's international opening names which also stay identical across locales. 
 string pair differs genuinely between locales; the test asserts this with the exception set
 explicitly documented.
 
-### `lib/settings/useSettings.test.ts` stubs `navigator` because `localStorage.clear()` requires it
+### A test file whose own `beforeEach` clears `localStorage` after the global seed must re-stub `navigator` itself
 
-`lib/settings/useSettings.test.ts` has a module-local `beforeEach` that stubs `navigator` to
-`{ language: 'pt-PT' }` via `vi.stubGlobal('navigator', ...)`. This is necessary because the
-global `vitest.setup.ts` `beforeEach` clears `localStorage` before every test, and with auto-detection
-now wired into `Settings.language`, calling `loadSettings()` on empty localStorage would
-otherwise use `jsdom`'s default `navigator.language` to detect — which is `'en-US'`, giving
-every test an English locale by default instead of Portuguese. The stub in this test file
-ensures that tests in `useSettings.test.ts` specifically, which exercise `loadSettings()`
-on empty storage and depend on language being `'pt'`, get the right value without relying
-on the global seed (which can't pre-populate saved `language` for this file's own
-language-detection tests). This pattern is specific to this file because it's testing the
-very detection logic; other test files rely only on the global seed and needn't stub anything.
+The global `vitest.setup.ts` `beforeEach` clears `localStorage` and then seeds it with
+`{ language: 'pt' }` (see "Global test-locale seed" above). That seed is what keeps every
+Portuguese-asserting test passing by default now that `Settings.language` has real
+browser-based auto-detection. But a test file with its *own* module-local `beforeEach` that
+calls `window.localStorage.clear()` runs that call after the global one — wiping the seed
+right back out — so `loadSettings()` falls through to `jsdom`'s default `navigator.language`
+(`'en-US'`), silently flipping that file's expectations to English.
+
+`lib/settings/settings.test.ts` and `lib/settings/useSettings.test.ts` both hit this (their
+`beforeEach` blocks clear storage to start each test from a clean slate) and both fix it the
+same way: `vi.stubGlobal('navigator', { language: 'pt-PT' })` in their own `beforeEach`,
+restoring the pre-detection assumption those tests were written under without relying on the
+global seed. Neither file is "testing the detection logic itself" — `settings.test.ts` does
+(its dedicated `describe('loadSettings — language auto-detection', ...)` block stubs
+`navigator` per-test instead, deliberately, since each test needs a different value); `useSettings.test.ts`
+tests the `useSyncExternalStore` singleton and needs Portuguese only incidentally. Any future
+test file that clears `localStorage` in its own `beforeEach` needs the same stub.
 
 ## Deploy
 
