@@ -1,6 +1,6 @@
 # Background Theme Images (Phase 10b: Visual Assets) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **Task 1 is controller-executed, not delegated to an implementer subagent — see its own note.**
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking. **Task 1 is controller-executed, not delegated to an implementer subagent — see its own note.**
 
 **Goal:** Generate real Draw Things art for the three `BACKGROUND_THEMES` (`templo`/`dojo`/`cosmico`) that `/` and `/opcoes` already render behind a CSS `fallbackGradient` placeholder, closing the gap CLAUDE.md's own "Spec §8's background-art claim was verified false during implementation" entry flags as real, deferred Phase 10 work.
 
@@ -34,7 +34,7 @@ Chess Sensei's own three background images (verified during an earlier phase's r
 
 > **Controller-executed — see this plan's Global Constraints.** Do not dispatch this task to an implementer subagent.
 
-- [ ] **Step 1: Confirm Draw Things is reachable**
+- [x] **Step 1: Confirm Draw Things is reachable**
 
 ```bash
 curl -s -m 5 http://127.0.0.1:7860/ -o /dev/null -w "%{http_code}\n"
@@ -42,7 +42,7 @@ curl -s -m 5 http://127.0.0.1:7860/ -o /dev/null -w "%{http_code}\n"
 
 Expected: `200`.
 
-- [ ] **Step 2: Generate "templo" — misty mountain temple, warm violet palette**
+- [x] **Step 2: Generate "templo" — misty mountain temple, warm violet palette**
 
 ```bash
 curl -s -m 480 -X POST http://127.0.0.1:7860/sdapi/v1/txt2img \
@@ -65,7 +65,7 @@ open('/tmp/bg_templo_original.png', 'wb').write(base64.b64decode(d['images'][0])
 
 Budget 2-3 minutes. Read `/tmp/bg_templo_original.png` — must read as a warm violet/purple misty-mountain scene, no game pieces, no boards, no people. If a game piece/board sneaks in despite the negative prompt, or the mood reads as the wrong color family, adjust the prompt and regenerate.
 
-- [ ] **Step 3: Generate "dojo" — cherry-blossom courtyard at night, cool teal palette**
+- [x] **Step 3: Generate "dojo" — cherry-blossom courtyard at night, cool teal palette**
 
 ```bash
 curl -s -m 480 -X POST http://127.0.0.1:7860/sdapi/v1/txt2img \
@@ -88,7 +88,7 @@ open('/tmp/bg_dojo_original.png', 'wb').write(base64.b64decode(d['images'][0]))
 
 Same inspection as Step 2, plus: confirm it reads as clearly distinct in mood/palette from `templo` (cooler teal/blue-green vs. warm violet) — the whole point of three themes is that they look different from each other, not just from the fallback gradients.
 
-- [ ] **Step 4: Generate "cosmico" — cosmic nebula, magenta/purple palette**
+- [x] **Step 4: Generate "cosmico" — cosmic nebula, magenta/purple palette**
 
 ```bash
 curl -s -m 480 -X POST http://127.0.0.1:7860/sdapi/v1/txt2img \
@@ -111,7 +111,7 @@ open('/tmp/bg_cosmico_original.png', 'wb').write(base64.b64decode(d['images'][0]
 
 Same inspection, plus: confirm it reads as distinct from both `templo` and `dojo` (a starfield/nebula, not another mountain or courtyard scene).
 
-- [ ] **Step 5: Downscale and compress all three, matching the design spec's file-size discipline**
+- [x] **Step 5: Downscale and compress all three, matching the design spec's file-size discipline**
 
 ```bash
 mkdir -p public/menu
@@ -129,7 +129,7 @@ rm -f background-templo-1200.png background-dojo-1200.png background-cosmico-120
 cd ../..
 ```
 
-- [ ] **Step 6: Sanity-check file sizes and do a final visual pass**
+- [x] **Step 6: Sanity-check file sizes and do a final visual pass**
 
 ```bash
 ls -la public/menu/background-templo.webp public/menu/background-dojo.webp public/menu/background-cosmico.webp
@@ -137,7 +137,7 @@ ls -la public/menu/background-templo.webp public/menu/background-dojo.webp publi
 
 Expected: each well under 100KB (design spec §8's own "few-KB to ~70KB" precedent). Read each final `.webp` file directly to confirm it still looks right after compression (no visible banding/artifacts), and that all three remain clearly distinguishable from one another at a glance.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add public/menu/background-templo.webp public/menu/background-dojo.webp public/menu/background-cosmico.webp
@@ -157,7 +157,7 @@ git push origin main
 
 **Interfaces:** none (documentation only).
 
-- [ ] **Step 1: Add the new `public/menu/` entry to the Structure section**
+- [x] **Step 1: Add the new `public/menu/` entry to the Structure section**
 
 Find the `public/` block (immediately after the `icons/` block added in the app-icon phase). Add, right after it:
 
@@ -172,7 +172,7 @@ Find the `public/` block (immediately after the `icons/` block added in the app-
                                   # see CLAUDE.md Conventions below
 ```
 
-- [ ] **Step 2: Replace the superseded Convention entry**
+- [x] **Step 2: Replace the superseded Convention entry**
 
 Find the entry titled `### Spec §8's background-art claim was verified false during implementation`. Replace it with:
 
@@ -194,12 +194,12 @@ fallback (image load failure, slow network) rather than removed now that real fi
 See `docs/superpowers/plans/2026-09-03-background-themes.md` for the exact generation pipeline.
 ```
 
-- [ ] **Step 3: Run the full suite and build**
+- [x] **Step 3: Run the full suite and build**
 
 Run: `npm test -- --run && npm run build`
 Expected: PASS / clean build.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add CLAUDE.md
