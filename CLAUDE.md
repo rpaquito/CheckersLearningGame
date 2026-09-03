@@ -275,13 +275,19 @@ lib/pwa/ (additions in the PWA phase)
   manifest.test.ts             # verifies public/manifest.json's identity
                                # fields and that every icon path it
                                # references resolves to a real file on disk
-components/ServiceWorkerRegistration/
-  ServiceWorkerRegistration.tsx # registers public/sw.js once mounted;
-                                # reloads on a new worker taking control,
-                                # re-checks for updates on tab foreground.
-                                # No native-platform guard yet -- see its
-                                # own doc comment and CLAUDE.md Conventions
-                                # below (Phase 10 must add one).
+components/
+  ServiceWorkerRegistration.tsx # bare file directly under components/, not
+                                # its own subdirectory like every other
+                                # component here -- matches Chess Sensei's
+                                # own layout for this exact file, a small
+                                # single-purpose infra component rather than
+                                # a domain UI component. Registers
+                                # public/sw.js once mounted; reloads on a
+                                # new worker taking control, re-checks for
+                                # updates on tab foreground. No native-
+                                # platform guard yet -- see its own doc
+                                # comment and CLAUDE.md Conventions below
+                                # (Phase 10 must add one).
 components/LineTabs/
   LineTabs.tsx               # tabbed widget for selecting among an opening's
                              # lines (currently all openings have exactly one
