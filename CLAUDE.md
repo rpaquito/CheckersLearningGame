@@ -341,6 +341,15 @@ public/
                                   # behind each BACKGROUND_THEMES entry's own
                                   # fallbackGradient (themes.ts) via CSS --
                                   # see CLAUDE.md Conventions below
+    vs-cpu.webp, two-players.webp,
+    tutorial.webp, options.webp   # home-menu tile illustrations -- same
+                                  # "sensei" mascot as the app icon, one scene
+                                  # per tile. Wired into MenuTile
+                                  # (app/page.tsx) as a backgroundImage with a
+                                  # translucent color-tint overlay on top --
+                                  # ported from Chess Sensei's own
+                                  # app/page.tsx pattern, see CLAUDE.md
+                                  # Conventions below
 app/
   icon.png                      # 32x32 browser-tab favicon (Next's file-
                                 # convention icon, auto-linked -- same
@@ -830,6 +839,39 @@ swap. No code changed to land these -- `themes.ts` already pointed `BACKGROUND_T
 exact paths, with the `fallbackGradient` kept in place underneath as a defense-in-depth CSS
 fallback (image load failure, slow network) rather than removed now that real files exist.
 See `docs/superpowers/plans/2026-09-03-background-themes.md` for the exact generation pipeline.
+
+### Menu tile illustrations: same mascot, ported tint-overlay pattern from Chess Sensei
+
+`public/menu/vs-cpu.webp`/`two-players.webp`/`tutorial.webp`/`options.webp` are real Draw
+Things art (model `z_image_turbo`) replacing `MenuTile`'s flat-gradient placeholder in
+`app/page.tsx`. Direct inspection of Chess Sensei's own shipped tile images (not just design
+spec §8's speculation) found all four chess-specific -- including `options.webp`, which the
+spec guessed might not need differentiation; it centers a chess pawn on a chessboard floor, so
+it does. All four were regenerated with the same "sensei" mascot as the app icon (golden
+headband, wispy beard, calm closed eyes, soft glowing aura), placed in a different scene per
+tile, negative-prompted against any chess piece/board.
+
+`vs-cpu.webp` needed three generation attempts before landing clean, worth recording as a
+concrete instance of this project's own established "don't accept the first result
+uncritically" rule (see the app-icon plan's precedent): attempt 1 rendered an actual chess king
+piece and chess pawns despite the negative prompt (the model defaulted to its strongest chess
+association); attempt 2 replaced the piece with a glowing crown-symbol orb but left faint
+chess-piece silhouettes bleeding into the blurred background edges; attempt 3 (accepted)
+explicitly described an "empty plain blurred hall in the background with no objects", which
+removed them. The accepted mascot design across all four tiles ended up as a full-body wise-
+robed humanoid character (not a literal disc-shaped body, despite early prompt drafts describing
+one) -- this matches Chess Sensei's own tile-illustration style exactly (its tiles show a robed
+old-man mascot, while only its app icon renders the piece-shaped coin/medallion treatment), so
+the two apps' concepts are consistent by construction, not by coincidence.
+
+The code side ports Chess Sensei's own `app/page.tsx` `MenuTile` structure verbatim: each tile's
+`image` renders as `backgroundImage` CSS, with the tile's previously-opaque `gradient` value
+converted to a translucent `rgba(...)` tint layered on top via an `absolute inset-0` span, so the
+tile keeps its accent-color identity and the label stays legible regardless of the photo
+underneath -- this is the same technique the home page's own background already uses
+(`fallbackGradient` layered with the real image via CSS), applied at tile scale instead of
+page scale. See `docs/superpowers/plans/2026-09-03-menu-tile-illustrations.md` for the exact
+prompts and pipeline.
 
 ### `/configurar`, `/jogar`, and modals stayed plain-Tailwind by spec
 
