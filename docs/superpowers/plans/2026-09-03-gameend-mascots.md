@@ -1,6 +1,6 @@
 # Game-End Mascots (Phase 10d: Visual Assets) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **Task 1 is controller-executed, not delegated to an implementer subagent — see its own note.**
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking. **Task 1 is controller-executed, not delegated to an implementer subagent — see its own note.**
 
 **Goal:** Give `GameEndModal` a real mascot illustration per result (win/lose/draw) plus win-confetti, replacing its current text-and-button-only, plain-Tailwind styling — closing design spec §8's last unaddressed asset row and the `GameEndModal.tsx` doc comment's own "no mascot/confetti yet (Phase 10)" note.
 
@@ -34,7 +34,7 @@ The code side ports Chess Sensei's own `GameEndModal.tsx` structure verbatim: `P
 
 > **Controller-executed — see this plan's Global Constraints.** Do not dispatch this task to an implementer subagent.
 
-- [ ] **Step 1: Copy the two reusable mascots**
+- [x] **Step 1: Copy the two reusable mascots**
 
 ```bash
 mkdir -p public/gameend
@@ -42,7 +42,7 @@ cp ~/Documents/Projects/ChessLearningGame/public/gameend/win.webp public/gameend
 cp ~/Documents/Projects/ChessLearningGame/public/gameend/draw.webp public/gameend/draw.webp
 ```
 
-- [ ] **Step 2: Confirm Draw Things is reachable**
+- [x] **Step 2: Confirm Draw Things is reachable**
 
 ```bash
 curl -s -m 5 http://127.0.0.1:7860/ -o /dev/null -w "%{http_code}\n"
@@ -50,7 +50,7 @@ curl -s -m 5 http://127.0.0.1:7860/ -o /dev/null -w "%{http_code}\n"
 
 Expected: `200`.
 
-- [ ] **Step 3: Generate "lose" — crying mascot, checkers piece instead of chess pawn**
+- [x] **Step 3: Generate "lose" — crying mascot, checkers piece instead of chess pawn**
 
 ```bash
 curl -s -m 480 -X POST http://127.0.0.1:7860/sdapi/v1/txt2img \
@@ -74,7 +74,7 @@ echo done
 
 Budget 2-4 minutes. Read `/tmp/gameend_lose_original.png` — must show the same crying "sensei" mascot concept, a flat checkers disc (not a tall chess pawn), no chessboard, no readable text/watermark. Regenerate with an adjusted prompt if a chess piece/board sneaks in (this plan's own research found this to be Draw Things' single strongest failure mode for this app so far — see `menu-tile-illustrations`' `vs-cpu.webp` precedent, which needed 3 attempts for the same reason).
 
-- [ ] **Step 4: Downscale and compress**
+- [x] **Step 4: Downscale and compress**
 
 ```bash
 cd public/gameend
@@ -84,7 +84,7 @@ rm -f lose-480.png
 cd ../..
 ```
 
-- [ ] **Step 5: Sanity-check file sizes and do a final visual pass**
+- [x] **Step 5: Sanity-check file sizes and do a final visual pass**
 
 ```bash
 ls -la public/gameend/win.webp public/gameend/draw.webp public/gameend/lose.webp
@@ -92,7 +92,7 @@ ls -la public/gameend/win.webp public/gameend/draw.webp public/gameend/lose.webp
 
 Expected: `win.webp`/`draw.webp` unchanged from their copied originals (~26-45KB); `lose.webp` in a similar few-KB-to-~50KB range. Read `lose.webp` to confirm it still looks right after compression, and that all three read as a coherent set (same character, three distinct emotional reactions).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add public/gameend/win.webp public/gameend/draw.webp public/gameend/lose.webp
@@ -114,7 +114,7 @@ git push origin main
 
 **Interfaces:** none new — `GameEndModalProps` is unchanged. Internally, the component now renders a mascot `<img>`-equivalent `<div>` (`data-testid="game-end-mascot"`, `backgroundImage` keyed by `GameEndKind`) and, for `kind === 'win'`, a `WinConfetti` sub-component with 12 `.animate-confetti-pop` particles.
 
-- [ ] **Step 1: Port the confetti keyframe into `app/globals.css`**
+- [x] **Step 1: Port the confetti keyframe into `app/globals.css`**
 
 This repo's `globals.css` already has one `@theme inline { ... }` block (color/font tokens, no
 `--animate-*` yet) — add `--animate-confetti-pop: confetti-pop 700ms ease-out forwards;` as a new
@@ -135,7 +135,7 @@ line inside that *existing* block (do not create a second `@theme` block), then 
 }
 ```
 
-- [ ] **Step 2: Rewrite `GameEndModal.tsx`**
+- [x] **Step 2: Rewrite `GameEndModal.tsx`**
 
 Port Chess Sensei's own `components/GameEndModal/GameEndModal.tsx` structure (see this plan's Architecture section), adapted to this repo's existing checkers types/imports:
 - Add a `MASCOT_IMAGE: Record<GameEndKind, string>` map (`win`/`lose`/`draw` → `/gameend/{win,lose,draw}.webp`), importing `GameEndKind` from `@/lib/checkers/gameEndMessage` (already exported there).
@@ -146,7 +146,7 @@ Port Chess Sensei's own `components/GameEndModal/GameEndModal.tsx` structure (se
 - Add the mascot circle (`data-testid="game-end-mascot"`, `h-32 w-32 rounded-full border-2 ... bg-cover bg-center`, `backgroundImage: url(${MASCOT_IMAGE[kind]})`) above the title, with `<WinConfetti />` rendered alongside it only when `kind === 'win'`.
 - Update the component's own doc comment (currently: "Text/button only in this plan -- no mascot illustration or confetti (Phase 10, see this plan's Global Constraints)") to describe what's actually there now.
 
-- [ ] **Step 3: Extend `GameEndModal.test.tsx`**
+- [x] **Step 3: Extend `GameEndModal.test.tsx`**
 
 Port Chess Sensei's four mascot/confetti tests (see this plan's Architecture section — the exact `toHaveStyle`/`animate-confetti-pop` count assertions), adapted to this repo's existing test fixture shape (`status`/`mode`/`humanColor`/`turn` props, not chess's FEN-based ones):
 - win shows the win mascot + 12 confetti particles
@@ -154,16 +154,16 @@ Port Chess Sensei's four mascot/confetti tests (see this plan's Architecture sec
 - draw shows the draw mascot + 0 confetti particles
 - (optional, matching chess's own coverage) a local-mode win for the non-human color still shows the correct mascot for whichever side actually won, not hardcoded to "human perspective"
 
-- [ ] **Step 4: Run tests and build**
+- [x] **Step 4: Run tests and build**
 
 Run: `npm test -- --run && npm run build`
 Expected: PASS / clean build.
 
-- [ ] **Step 5: Manual visual check** (optional but recommended)
+- [x] **Step 5: Manual visual check** (optional but recommended)
 
 Run `npm run dev`, trigger each of the three game-end states in `/jogar` (or render the modal directly via a quick temporary route/test harness if faster), confirm the mascot displays correctly and confetti only appears on a win.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/globals.css components/GameEndModal/GameEndModal.tsx components/GameEndModal/GameEndModal.test.tsx
@@ -183,7 +183,7 @@ git push origin main
 
 **Interfaces:** none (documentation only).
 
-- [ ] **Step 1: Add a `public/gameend/` Structure entry**
+- [x] **Step 1: Add a `public/gameend/` Structure entry**
 
 Add a new block (alongside the existing `public/menu/` entry):
 
@@ -198,11 +198,11 @@ Add a new block (alongside the existing `public/menu/` entry):
                                   # an actual chess pawn + chessboard floor
 ```
 
-- [ ] **Step 2: Update the existing `GameEndModal.tsx` Structure entry**
+- [x] **Step 2: Update the existing `GameEndModal.tsx` Structure entry**
 
 Find the line describing `GameEndModal.tsx` (currently: "win/lose/draw modal -- text/button only, no mascot/confetti yet (Phase 10)"). Update it to describe the real mascot/confetti behavior now in place.
 
-- [ ] **Step 3: Add a new Convention entry**
+- [x] **Step 3: Add a new Convention entry**
 
 Add, after the "Menu tile illustrations" convention entry:
 
@@ -226,12 +226,12 @@ were unused by this specific modal until now. See
 `docs/superpowers/plans/2026-09-03-gameend-mascots.md` for the exact generation pipeline.
 ```
 
-- [ ] **Step 4: Run the full suite and build**
+- [x] **Step 4: Run the full suite and build**
 
 Run: `npm test -- --run && npm run build`
 Expected: PASS / clean build.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add CLAUDE.md
