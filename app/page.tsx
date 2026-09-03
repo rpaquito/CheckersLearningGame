@@ -5,6 +5,7 @@ import { clearSavedGame } from '@/lib/checkers/useCheckersGame';
 import { PageGlow, PageHeader, titleStroke } from '@/components/PageChrome/PageChrome';
 import { BACKGROUND_THEMES } from '@/lib/settings/themes';
 import { useSettings } from '@/lib/settings/useSettings';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 // Same "stamped shadow + diagonal clip" visual language as ChipButton, at
 // tile scale, for the four primary actions.
@@ -24,38 +25,6 @@ interface TileData {
   onClick?: () => void;
 }
 
-// No per-tile illustration yet -- Chess Sensei's vs-cpu.webp/two-players.
-// webp/tutorial.webp/options.webp are chess-specific art; new Draw Things
-// generation for checkers equivalents is Phase 10 (see this plan's Global
-// Constraints and CLAUDE.md). Each tile is its own gradient instead, in the
-// same 4 accent colors real art will sit behind once it lands.
-const TILES: TileData[] = [
-  {
-    href: '/configurar',
-    gradient: 'linear-gradient(135deg, #00E5FF, #4EA8DE)',
-    emoji: '⚔️',
-    label: 'Jogar contra o computador',
-  },
-  {
-    href: '/jogar?mode=local',
-    gradient: 'linear-gradient(135deg, #FF9AC2, #FF6FA5)',
-    emoji: '✨',
-    label: 'Dois jogadores',
-  },
-  {
-    href: '/aprender',
-    gradient: 'linear-gradient(135deg, #B87FDB, #7B3FA0)',
-    emoji: '📖',
-    label: 'Aprender a jogar',
-  },
-  {
-    href: '/opcoes',
-    gradient: 'linear-gradient(135deg, #FFE066, #FFD600)',
-    emoji: '⚙️',
-    label: 'Opções',
-  },
-];
-
 function MenuTile({ href, gradient, emoji, label, onClick }: TileData) {
   return (
     <Link href={href} onClick={onClick} className={TILE_CLASS} style={{ background: gradient }}>
@@ -71,11 +40,41 @@ function MenuTile({ href, gradient, emoji, label, onClick }: TileData) {
 
 export default function HomePage() {
   const { settings } = useSettings();
+  const { t } = useTranslation();
   const theme = BACKGROUND_THEMES[settings.backgroundTheme];
 
-  const tiles = TILES.map((tile) =>
-    tile.href === '/jogar?mode=local' ? { ...tile, onClick: () => clearSavedGame() } : tile
-  );
+  // No per-tile illustration yet -- Chess Sensei's vs-cpu.webp/two-players.
+  // webp/tutorial.webp/options.webp are chess-specific art; new Draw Things
+  // generation for checkers equivalents is Phase 10. Each tile is its own
+  // gradient instead, in the same 4 accent colors real art will sit behind
+  // once it lands.
+  const tiles: TileData[] = [
+    {
+      href: '/configurar',
+      gradient: 'linear-gradient(135deg, #00E5FF, #4EA8DE)',
+      emoji: '⚔️',
+      label: t.menu.playVsComputer,
+    },
+    {
+      href: '/jogar?mode=local',
+      gradient: 'linear-gradient(135deg, #FF9AC2, #FF6FA5)',
+      emoji: '✨',
+      label: t.menu.twoPlayers,
+      onClick: () => clearSavedGame(),
+    },
+    {
+      href: '/aprender',
+      gradient: 'linear-gradient(135deg, #B87FDB, #7B3FA0)',
+      emoji: '📖',
+      label: t.menu.learnToPlay,
+    },
+    {
+      href: '/opcoes',
+      gradient: 'linear-gradient(135deg, #FFE066, #FFD600)',
+      emoji: '⚙️',
+      label: t.menu.options,
+    },
+  ];
 
   return (
     <main
@@ -88,7 +87,7 @@ export default function HomePage() {
       <PageGlow pinkOpacity={0.35} darken={[0.55, 0.85]} />
 
       <PageHeader size="text-5xl" softDrop={5} logoSize="lg" wrapperClassName="w-full max-w-sm">
-        Checkers Sensei
+        {t.menu.title}
       </PageHeader>
 
       <div className="relative flex flex-col gap-4 w-full max-w-sm">
