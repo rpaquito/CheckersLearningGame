@@ -1,6 +1,6 @@
 # Menu Tile Illustrations (Phase 10c: Visual Assets) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **Task 1 is controller-executed, not delegated to an implementer subagent — see its own note.**
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking. **Task 1 is controller-executed, not delegated to an implementer subagent — see its own note.**
 
 **Goal:** Generate real Draw Things art for the four home-menu tiles (`vs-cpu`/`two-players`/`tutorial`/`options`) and wire it into `app/page.tsx`'s `MenuTile`, replacing the flat-gradient placeholder that's been there since the visual-identity phase.
 
@@ -37,7 +37,7 @@ Chess Sensei's own `app/page.tsx` already solved the code side of this exact pro
 
 > **Controller-executed — see this plan's Global Constraints.** Do not dispatch this task to an implementer subagent.
 
-- [ ] **Step 1: Confirm Draw Things is reachable**
+- [x] **Step 1: Confirm Draw Things is reachable**
 
 ```bash
 curl -s -m 5 http://127.0.0.1:7860/ -o /dev/null -w "%{http_code}\n"
@@ -45,7 +45,7 @@ curl -s -m 5 http://127.0.0.1:7860/ -o /dev/null -w "%{http_code}\n"
 
 Expected: `200`.
 
-- [ ] **Step 2: Generate "vs-cpu" — mascot facing a robot opponent**
+- [x] **Step 2: Generate "vs-cpu" — mascot facing a robot opponent**
 
 ```bash
 curl -s -m 480 -X POST http://127.0.0.1:7860/sdapi/v1/txt2img \
@@ -69,7 +69,7 @@ echo done
 
 Budget 2-4 minutes. Read `/tmp/tile_vscpu_original.png` — must show the checkers-disc mascot (crown, headband, beard) vs. a robot, no chess pieces/board anywhere, no readable text/watermark. Regenerate with an adjusted prompt if a chess piece sneaks in or the composition reads as photorealistic rather than anime (the design spec's own explicit warning for this exact tile, carried over from Chess Sensei's build).
 
-- [ ] **Step 3: Generate "two-players" — two crowned discs facing each other**
+- [x] **Step 3: Generate "two-players" — two crowned discs facing each other**
 
 ```bash
 curl -s -m 480 -X POST http://127.0.0.1:7860/sdapi/v1/txt2img \
@@ -93,7 +93,7 @@ echo done
 
 Same inspection as Step 2: two checkers discs (not chess kings/bishops), one light one dark, no chess imagery.
 
-- [ ] **Step 4: Generate "tutorial" — mascot reading a book**
+- [x] **Step 4: Generate "tutorial" — mascot reading a book**
 
 ```bash
 curl -s -m 480 -X POST http://127.0.0.1:7860/sdapi/v1/txt2img \
@@ -117,7 +117,7 @@ echo done
 
 Same inspection: graduation cap + book + a single glowing checkers piece (not a chess pawn), no chessboard.
 
-- [ ] **Step 5: Generate "options" — mascot with a wrench and gears**
+- [x] **Step 5: Generate "options" — mascot with a wrench and gears**
 
 ```bash
 curl -s -m 480 -X POST http://127.0.0.1:7860/sdapi/v1/txt2img \
@@ -141,7 +141,7 @@ echo done
 
 Same inspection: wrench + gears + a single glowing crowned checkers piece (not a chess pawn), no chessboard floor pattern read as a chess board.
 
-- [ ] **Step 6: Downscale and compress all four**
+- [x] **Step 6: Downscale and compress all four**
 
 ```bash
 mkdir -p public/menu
@@ -161,7 +161,7 @@ rm -f vs-cpu-800.png two-players-800.png tutorial-800.png options-800.png
 cd ../..
 ```
 
-- [ ] **Step 7: Sanity-check file sizes and do a final visual pass**
+- [x] **Step 7: Sanity-check file sizes and do a final visual pass**
 
 ```bash
 ls -la public/menu/vs-cpu.webp public/menu/two-players.webp public/menu/tutorial.webp public/menu/options.webp
@@ -169,7 +169,7 @@ ls -la public/menu/vs-cpu.webp public/menu/two-players.webp public/menu/tutorial
 
 Expected: each in the few-KB to ~50KB range (Chess Sensei's own precedent for these exact tiles: 32-41KB). If any file lands much higher, re-run Step 6 with a lower `cwebp -q` value (see `background-themes` plan's precedent for this exact adjustment) before proceeding. Read each final `.webp` to confirm it still looks right after compression and that all four are clearly distinguishable from one another.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add public/menu/vs-cpu.webp public/menu/two-players.webp public/menu/tutorial.webp public/menu/options.webp
@@ -190,7 +190,7 @@ git push origin main
 
 **Interfaces:** `TileData` gains an `image: string` field. `MenuTile`'s rendering changes from an opaque `style={{ background: gradient }}` to a `backgroundImage` on the `Link` plus a new translucent overlay `<span>` carrying the tint — porting Chess Sensei's own `app/page.tsx` structure verbatim (see this plan's Architecture section), adapted to this repo's existing gradient color values (converted to `rgba(...)` tints, same two-stop `135deg` shape already in use) instead of re-deriving new ones.
 
-- [ ] **Step 1: Update `TileData`/`MenuTile`/the tile list**
+- [x] **Step 1: Update `TileData`/`MenuTile`/the tile list**
 
 In `app/page.tsx`:
 - Add `image: string` to the `TileData` interface.
@@ -200,20 +200,20 @@ In `app/page.tsx`:
 - Add `image: '/menu/vs-cpu.webp'`, `'/menu/two-players.webp'`, `'/menu/tutorial.webp'`, `'/menu/options.webp'` to the four respective tile objects, matching Task 1's file names.
 - Update the stale comment above the tile list ("No per-tile illustration yet...") to describe what's actually there now — real Draw Things art with a translucent tint overlay, ported from Chess Sensei's own `page.tsx` pattern.
 
-- [ ] **Step 2: Extend `app/page.test.tsx`**
+- [x] **Step 2: Extend `app/page.test.tsx`**
 
 Add an assertion (in the existing "renders the four menu tiles" test, or a new one) that each tile link's inline style includes its expected `/menu/<name>.webp` background image — e.g. via `getComputedStyle` or by checking the rendered `style` attribute contains the path. Follow this file's existing `screen.getByRole('link', ...)` pattern rather than introducing a new query style.
 
-- [ ] **Step 3: Run tests and build**
+- [x] **Step 3: Run tests and build**
 
 Run: `npm test -- --run && npm run build`
 Expected: PASS / clean build.
 
-- [ ] **Step 4: Manual visual check** (optional but recommended — no automated visual regression exists in this repo)
+- [x] **Step 4: Manual visual check** (optional but recommended — no automated visual regression exists in this repo)
 
 Run `npm run dev`, open `/`, confirm all four tiles show their new art with legible text and the correct accent-color tint, in both `pt` and `en` (toggle via `/opcoes`).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/page.tsx app/page.test.tsx
@@ -233,7 +233,7 @@ git push origin main
 
 **Interfaces:** none (documentation only).
 
-- [ ] **Step 1: Update the `public/menu/` Structure entry**
+- [x] **Step 1: Update the `public/menu/` Structure entry**
 
 Find the `menu/` block added by the `background-themes` phase. Add the four new files to it:
 
@@ -257,7 +257,7 @@ Find the `menu/` block added by the `background-themes` phase. Add the four new 
                                   # see CLAUDE.md Conventions below
 ```
 
-- [ ] **Step 2: Add a new Convention entry**
+- [x] **Step 2: Add a new Convention entry**
 
 Add, after the "Background theme images" convention entry:
 
@@ -281,12 +281,12 @@ underneath -- this is the same technique `app/page.tsx`'s home background alread
 page scale.
 ```
 
-- [ ] **Step 3: Run the full suite and build**
+- [x] **Step 3: Run the full suite and build**
 
 Run: `npm test -- --run && npm run build`
 Expected: PASS / clean build.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add CLAUDE.md
