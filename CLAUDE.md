@@ -339,7 +339,8 @@ public/
 app/
   icon.png                      # 32x32 browser-tab favicon (Next's file-
                                 # convention icon, auto-linked -- same
-                                # source SVG as public/icons/icon-192.png)
+                                # source render as public/icons/icon-192.png,
+                                # see public/icons/icon-master.png)
 ```
 
 ## Conventions
