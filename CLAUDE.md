@@ -160,8 +160,11 @@ components/ConfirmModal/
   ConfirmModal.tsx        # generic confirm/cancel popup, backdrop+Escape+
                            # cancel all count as "no"
 components/GameEndModal/
-  GameEndModal.tsx        # win/lose/draw modal -- text/button only, no
-                           # mascot/confetti yet (Phase 10)
+  GameEndModal.tsx        # win/lose/draw modal -- real mascot illustration
+                           # per result (public/gameend/) plus a deterministic
+                           # win-confetti burst, ported from Chess Sensei's
+                           # own GameEndModal.tsx (Phase 10d), see CLAUDE.md
+                           # Conventions below
 components/RulesModal/
   RulesModal.tsx          # checkers rules content -- movement, mandatory
                            # capture, promotion, draw conditions. Built and
@@ -350,6 +353,14 @@ public/
                                   # ported from Chess Sensei's own
                                   # app/page.tsx pattern, see CLAUDE.md
                                   # Conventions below
+  gameend/
+    win.webp, draw.webp           # reused unchanged from Chess Sensei -- both
+                                  # verified to contain no chess-specific
+                                  # imagery (generic celebration/shrug
+                                  # reactions), per design spec §8's own
+                                  # "otherwise reusable" clause
+    lose.webp                     # regenerated -- Chess Sensei's original had
+                                  # an actual chess pawn + chessboard floor
 app/
   icon.png                      # 32x32 browser-tab favicon (Next's file-
                                 # convention icon, auto-linked -- same
@@ -873,14 +884,39 @@ underneath -- this is the same technique the home page's own background already 
 page scale. See `docs/superpowers/plans/2026-09-03-menu-tile-illustrations.md` for the exact
 prompts and pipeline.
 
+### Game-end mascots: two reused unchanged, one regenerated -- verified per-file, not assumed
+
+`public/gameend/win.webp`/`draw.webp` are Chess Sensei's own files, copied unchanged -- direct
+inspection found neither contains any chess piece, board, or chess-specific symbol (a generic
+fists-raised celebration and a generic shrug, respectively), matching design spec §8's own
+conditional for this asset row ("checkers-flavored if the mascot itself references chess pieces,
+otherwise reusable"). Only `lose.webp` needed regeneration: Chess Sensei's original shows the
+mascot crying next to an actual chess pawn on a chessboard floor. The replacement keeps the same
+crying-mascot concept with a checkers disc instead.
+
+`GameEndModal.tsx` now ports Chess Sensei's own structure verbatim: a mascot circle keyed by
+`GameEndKind`, a deterministic (non-`Math.random()`) 12-particle confetti burst via a
+`confetti-pop` CSS keyframe (`app/globals.css`) firing only on `kind === 'win'`, `PageTitle`/
+`MODAL_BACKDROP_CLASS` from `PageChrome.tsx` and `ChipButton` for its two actions -- all three
+already existed in this repo (ported during the visual-identity/toast-modal-chrome phases) but
+were unused by this specific modal until now. This makes `GameEndModal` the first modal in this
+repo to gain the "anime" chrome (see the "stayed plain-Tailwind by spec" entry above) -- a
+deliberate, scoped exception because design spec §8 explicitly calls for a mascot here, not a
+broader modal-chrome pass; `ConfirmModal`/`RulesModal`/`LearningPanel`/`Toast` are unaffected and
+remain plain-Tailwind. See `docs/superpowers/plans/2026-09-03-gameend-mascots.md` for the exact
+generation pipeline.
+
 ### `/configurar`, `/jogar`, and modals stayed plain-Tailwind by spec
 
 Only `/` and `/opcoes` received the new PageChrome chrome and "anime"
 visual identity in this phase — this matches the spec's feature-parity table
 (§5), which marks only those two pages for "New art" in Phase 5. Every other
-page (`/configurar`, `/jogar`) and component (`RulesModal`, `GameEndModal`,
-`ConfirmModal`, `LearningPanel`, `Toast`) keep their hardcoded-Portuguese,
-plain-Tailwind style until a later phase explicitly revisits them. `CheckersBoard`'s
+page (`/configurar`, `/jogar`) and component (`RulesModal`, `ConfirmModal`,
+`LearningPanel`, `Toast`) keep their hardcoded-Portuguese,
+plain-Tailwind style until a later phase explicitly revisits them.
+(`GameEndModal` was the first exception, gaining `PageTitle`/`MODAL_BACKDROP_CLASS`/
+`ChipButton` chrome in the Phase 10d gameend-mascots phase — see this file's
+"Game-end mascots" convention entry below.) `CheckersBoard`'s
 new `boardTheme`/`pieceStyle` props exist and are tested; `/jogar` doesn't
 pass real `settings` values into them yet — it still renders with the default
 `'nebulosa'`/`'classico'`. Wiring those props through in `/jogar` is deferred
