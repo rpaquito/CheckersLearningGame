@@ -69,10 +69,11 @@ const LOGO_SIZE_CLASS: Record<'md' | 'lg', string> = {
 };
 
 /**
- * Logo (`public/icons/icon-192.png` -- not generated until Phase 10, see
- * this file's own task notes; renders as an empty shadowed box until then)
- * + `PageTitle`, always left-aligned. Use this instead of a bare
- * `<PageTitle>` at the top of any page.
+ * Logo (`public/icons/icon-192.png` -- a placeholder gold checkers-king
+ * icon generated in the PWA phase, see `public/icons/icon-source.svg`;
+ * Phase 10 replaces the PNG files at this same path with real Draw Things
+ * art, no code change needed) + `PageTitle`, always left-aligned. Use this
+ * instead of a bare `<PageTitle>` at the top of any page.
  */
 export function PageHeader({ logoSize = 'md', wrapperClassName = '', ...titleProps }: PageHeaderProps) {
   return (
