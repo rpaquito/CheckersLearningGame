@@ -293,6 +293,19 @@ Run: `npm run test` — expect all tests green (haptics no-op safely in jsdom).
 Run: `npx tsc --noEmit` — expect clean.
 Run: `npm run lint` — expect clean.
 
+**Real-world correction, found during this plan's own execution:** both `tsc --noEmit` and
+`npm run lint` will pick up `ios/App/App/public/` (Task 1's `cap sync`-regenerated copy of the
+built `out/` static export — already-bundled/minified JS, plus a copy of source `.ts` files kept
+for source maps) and report dozens of spurious errors/warnings against it, because `tsconfig.json`
+already excludes `out` but not `ios`, and `eslint.config.mjs`'s own comment ("Extend with
+globalIgnores() ... once vendored/generated directories exist ... none do yet") predicted exactly
+this moment. Fix both, in the same task:
+- `tsconfig.json`: add `"ios"` to the `"exclude"` array (alongside the existing `"out"`).
+- `eslint.config.mjs`: add `globalIgnores(["ios/"])` to the `defineConfig([...])` array, imported
+  from `"eslint/config"` alongside the existing `defineConfig` import.
+
+Re-run both commands after the fix to confirm they're clean before moving on.
+
 - [ ] **Step 4: Manual live check (web)**
 
 ```bash

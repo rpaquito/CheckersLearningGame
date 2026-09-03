@@ -10,13 +10,14 @@ import { ConfirmModal } from '@/components/ConfirmModal/ConfirmModal';
 import { createCheckersEngineClient, type CheckersEngineClient } from '@/lib/checkers/checkersEngineClient';
 import { difficultyToEngineOptions, SUGGESTION_ENGINE_OPTIONS, type Difficulty } from '@/lib/checkers/difficulty';
 import { resolvePlayerColor, type PlayerColor } from '@/lib/checkers/playerColor';
-import { applyMove } from '@/lib/checkers/moveGeneration';
+import { applyMove, legalMovesFrom as legalMovesFromEngine } from '@/lib/checkers/moveGeneration';
 import { useLearningModePreference } from '@/lib/checkers/useLearningModePreference';
 import { gradeMove } from '@/lib/checkers/gradeMove';
 import { explainMove, describeMoveForToast } from '@/lib/checkers/moveExplanation';
 import { LearningPanel } from '@/components/LearningPanel/LearningPanel';
 import { useToast } from '@/components/Toast/ToastProvider';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { hapticCapture, hapticKinged, hapticMove } from '@/lib/native/haptics';
 import type { Board, CheckersMove, Color, Square } from '@/lib/checkers/types';
 
 function isDifficulty(value: string | null): value is Difficulty {
@@ -225,8 +226,18 @@ function JogarPageInner() {
       if (learningModeEnabled) {
         pendingGradeRef.current = { boardBeforeMove: state.board, moverColor: state.turn };
       }
+      const playedMove = legalMovesFromEngine(state.board, state.turn, selected).find((m) => m.to === square);
       makeMove(selected, square);
       setSelected(null);
+      if (playedMove) {
+        if (playedMove.promotes) {
+          hapticKinged();
+        } else if (playedMove.captures.length > 0) {
+          hapticCapture();
+        } else {
+          hapticMove();
+        }
+      }
       return;
     }
 
