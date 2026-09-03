@@ -1,6 +1,6 @@
 # Native iOS App (Capacitor) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **This plan stops before any Xcode-signing/on-device step — see Global Constraints.**
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking. **This plan stops before any Xcode-signing/on-device step — see Global Constraints.**
 
 **Goal:** Wrap the app in a native iOS shell via Capacitor, reusing Chess Sensei's own already-shipped, working pipeline (`docs/ios-app-store-plan.md`, `lib/native/haptics.ts`, the `BUILD_TARGET=capacitor` build split) verbatim where the two apps' needs are identical, adapted only where checkers genuinely differs (bundle ID, app name — already correct here — and a `hapticKinged` promotion haptic replacing chess's `hapticCheck`, since checkers has no "check" concept).
 
@@ -39,13 +39,13 @@ Unlike Chess Sensei's own native-iOS plan, this one has **no rebrand task** — 
 - Consumes: `next.config.ts`'s existing `BUILD_TARGET=capacitor` → `output: 'export'` branch (already present, unused until this task's new `build:capacitor` script actually sets that env var).
 - Produces: a committed `ios/` Xcode project; `npm run cap:sync:ios`/`npm run cap:open:ios` scripts. Task 4 (service worker guard) and Task 3 (haptics) both depend on `@capacitor/core` being installed by this task.
 
-- [ ] **Step 1: Install the Capacitor dependencies**
+- [x] **Step 1: Install the Capacitor dependencies**
 
 ```bash
 npm install @capacitor/core @capacitor/cli @capacitor/ios @capacitor/haptics
 ```
 
-- [ ] **Step 2: Create `capacitor.config.ts`**
+- [x] **Step 2: Create `capacitor.config.ts`**
 
 ```ts
 import type { CapacitorConfig } from '@capacitor/cli';
@@ -59,7 +59,7 @@ const config: CapacitorConfig = {
 export default config;
 ```
 
-- [ ] **Step 3: Add the three new npm scripts**
+- [x] **Step 3: Add the three new npm scripts**
 
 In `package.json`'s `"scripts"` object, add (alongside the existing `build`):
 
@@ -69,7 +69,7 @@ In `package.json`'s `"scripts"` object, add (alongside the existing `build`):
 "cap:open:ios": "npx cap open ios",
 ```
 
-- [ ] **Step 4: Build the static export**
+- [x] **Step 4: Build the static export**
 
 ```bash
 npm run build:capacitor
@@ -77,7 +77,7 @@ npm run build:capacitor
 
 Expected: exits 0, `out/` exists and contains `index.html`. If this fails, stop and diagnose before proceeding — every later step in this task depends on a working static export (Capacitor copies `webDir` into the native project at creation time).
 
-- [ ] **Step 5: Add the iOS platform (CocoaPods, not the CLI's SPM default)**
+- [x] **Step 5: Add the iOS platform (CocoaPods, not the CLI's SPM default)**
 
 ```bash
 npx cap add ios --packagemanager CocoaPods
@@ -94,7 +94,7 @@ manager flag required on `cap add ios`") anticipated exactly this, so use the ex
 Expected: creates `ios/App/App.xcworkspace`, `ios/App/Podfile`/`Podfile.lock`, `ios/App/App/public`
 (a copy of `out/`), and `ios/App/App/Assets.xcassets/AppIcon.appiconset/`.
 
-- [ ] **Step 6: Extend `.gitignore` for iOS build artifacts**
+- [x] **Step 6: Extend `.gitignore` for iOS build artifacts**
 
 Add a new section at the end of `.gitignore`:
 
@@ -109,7 +109,7 @@ ios/**/xcuserdata/
 ios/**/*.xcuserstate
 ```
 
-- [ ] **Step 7: Sync and install native dependencies**
+- [x] **Step 7: Sync and install native dependencies**
 
 ```bash
 npx cap sync ios
@@ -117,7 +117,7 @@ npx cap sync ios
 
 Expected: exits 0; installs CocoaPods dependencies (`ios/App/Podfile.lock` is created).
 
-- [ ] **Step 8: Verify the native project actually compiles (non-interactive, no signing needed)**
+- [x] **Step 8: Verify the native project actually compiles (non-interactive, no signing needed)**
 
 ```bash
 xcodebuild -workspace ios/App/App.xcworkspace -scheme App -sdk iphonesimulator -configuration Debug build
@@ -125,7 +125,7 @@ xcodebuild -workspace ios/App/App.xcworkspace -scheme App -sdk iphonesimulator -
 
 Expected: `** BUILD SUCCEEDED **`. This does not require any Apple ID or code signing — a plain simulator-SDK build doesn't need one. This is the boundary named in this plan's Global Constraints: no further Xcode/device interaction happens in this plan.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add capacitor.config.ts package.json package-lock.json .gitignore ios/
@@ -146,7 +146,7 @@ git push origin main
 
 **Interfaces:** exports `hapticMove(): Promise<void>`, `hapticCapture(): Promise<void>`, `hapticKinged(): Promise<void>`. Task 3 consumes all three.
 
-- [ ] **Step 1: Write the module**
+- [x] **Step 1: Write the module**
 
 ```ts
 import { Capacitor } from '@capacitor/core';
@@ -175,7 +175,7 @@ export async function hapticKinged(): Promise<void> {
 }
 ```
 
-- [ ] **Step 2: Write the tests**
+- [x] **Step 2: Write the tests**
 
 ```ts
 import { describe, expect, it, vi } from 'vitest';
@@ -209,12 +209,12 @@ describe('haptics (no-op branch — every environment except the native shell)',
 });
 ```
 
-- [ ] **Step 3: Run the test**
+- [x] **Step 3: Run the test**
 
 Run: `npx vitest run lib/native/haptics.test.ts`
 Expected: PASS (3 tests).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add lib/native/haptics.ts lib/native/haptics.test.ts
@@ -236,7 +236,7 @@ git push origin main
 
 **Scope decision (document in Task 6):** haptics fire only on the human player's own move (`handleSquareClick`) — never on the AI's automatic move (the separate effect that calls `makeMove` for the AI's turn), never on `handleRequestSuggestion`. This is checked by inspecting the full `CheckersMove` (not just the `from`/`to` squares) matched from `legalMovesFrom(state.board, state.turn, selected)` — using the real move-generation engine directly (already imported project-wide, e.g. by `moveExplanation.ts` call sites in this same file) rather than adding a new API surface to `useCheckersGame`.
 
-- [ ] **Step 1: Import the haptics functions and the engine's `legalMovesFrom`**
+- [x] **Step 1: Import the haptics functions and the engine's `legalMovesFrom`**
 
 Add to `app/jogar/page.tsx`'s import block:
 
@@ -247,7 +247,7 @@ import { hapticCapture, hapticKinged, hapticMove } from '@/lib/native/haptics';
 
 (`applyMove` is already imported from `@/lib/checkers/moveGeneration` in this file — add `legalMovesFrom` as a second named import from the same module, aliased to avoid colliding with the hook's own `legalMovesFrom` already destructured from `useCheckersGame`.)
 
-- [ ] **Step 2: Fire the right haptic after a played move**
+- [x] **Step 2: Fire the right haptic after a played move**
 
 In `handleSquareClick`, the existing branch is:
 
@@ -287,7 +287,7 @@ Change it to look up the full move *before* calling `makeMove` (matching this fi
 
 (Same first-match-wins ambiguity already documented in CLAUDE.md's "`makeMove`'s return value" convention entry for the rare multi-route-same-destination case — acceptable here for the same reason: picking the wrong of two otherwise-equivalent capture chains still fires a correct-in-spirit `hapticCapture`, never a wrong haptic category.)
 
-- [ ] **Step 3: Verify nothing broke**
+- [x] **Step 3: Verify nothing broke**
 
 Run: `npm run test` — expect all tests green (haptics no-op safely in jsdom).
 Run: `npx tsc --noEmit` — expect clean.
@@ -306,7 +306,7 @@ this moment. Fix both, in the same task:
 
 Re-run both commands after the fix to confirm they're clean before moving on.
 
-- [ ] **Step 4: Manual live check (web)**
+- [x] **Step 4: Manual live check (web)**
 
 ```bash
 npm run dev
@@ -314,7 +314,7 @@ npm run dev
 
 Open `/jogar`, play a few moves including at least one capture and (if reachable) one promotion. Confirm: no console errors, gameplay is otherwise identical (haptics no-op on the web, so nothing should visibly change).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/jogar/page.tsx
@@ -335,7 +335,7 @@ git push origin main
 
 **Interfaces:** consumes `Capacitor.isNativePlatform()` from `@capacitor/core` (installed in Task 1). This is the guard the component's own doc comment has predicted since the PWA phase — see this plan's Architecture section.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add to the top of `components/ServiceWorkerRegistration.test.tsx` (before the existing `describe` block), and add a new `describe` block:
 
@@ -381,12 +381,12 @@ describe('ServiceWorkerRegistration — native guard', () => {
 
 Keep the existing `describe('ServiceWorkerRegistration', ...)` block below it unchanged — its own `beforeEach` doesn't mock `@capacitor/core`, so `Capacitor.isNativePlatform()` will hit the real (non-mocked) package there; confirm this still resolves to `false` in jsdom (no native bridge) so those tests keep passing unmodified.
 
-- [ ] **Step 2: Run the new tests to verify they fail**
+- [x] **Step 2: Run the new tests to verify they fail**
 
 Run: `npx vitest run components/ServiceWorkerRegistration.test.tsx`
 Expected: the new `does not register...` case FAILS — the component doesn't check `isNativePlatform()` yet.
 
-- [ ] **Step 3: Add the native guard**
+- [x] **Step 3: Add the native guard**
 
 In `components/ServiceWorkerRegistration.tsx`, add the import:
 
@@ -415,12 +415,12 @@ to:
 
 Also update the component's own doc comment (which currently says "Deliberately has NO native-platform guard... Phase 10 must add that guard back") to describe the guard now in place instead of predicting it.
 
-- [ ] **Step 4: Run the full suite**
+- [x] **Step 4: Run the full suite**
 
 Run: `npm run test`
 Expected: all tests green.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add components/ServiceWorkerRegistration.tsx components/ServiceWorkerRegistration.test.tsx
@@ -440,7 +440,7 @@ git push origin main
 
 **Interfaces:** none — reference documentation for the user's own follow-up (matches this plan's Scope boundary).
 
-- [ ] **Step 1: Write the doc**
+- [x] **Step 1: Write the doc**
 
 Adapt Chess Sensei's own `docs/ios-app-store-plan.md` (same three parts: sideload to your own iPhone free for 7 days, TestFlight via the paid Developer Program, full App Store release), substituting:
 - App name: "Checkers Sensei" (not "Chess Sensei")
@@ -451,7 +451,7 @@ Adapt Chess Sensei's own `docs/ios-app-store-plan.md` (same three parts: sideloa
 
 Keep chess's doc's core content model: a "get it on your iPhone right now, free" part first (no paid account, just Xcode + a free Apple ID + the 7-day resign caveat + the "Untrusted Developer → Trust" on-device step), then TestFlight, then full submission (screenshots, description, privacy policy URL — this app also collects nothing, no backend/auth, only `localStorage`).
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add docs/ios-app-store-plan.md
@@ -471,7 +471,7 @@ git push origin main
 
 **Interfaces:** consumes everything from Tasks 1–5.
 
-- [ ] **Step 1: Run the full automated verification**
+- [x] **Step 1: Run the full automated verification**
 
 ```bash
 npm run test -- --run
@@ -484,7 +484,7 @@ npm run cap:sync:ios
 
 Expected: every command exits 0. `npm run test` should report more tests than before this plan (the new `lib/native/haptics.test.ts` and the two new `ServiceWorkerRegistration.test.tsx` cases).
 
-- [ ] **Step 2: Add a new Convention entry**
+- [x] **Step 2: Add a new Convention entry**
 
 ```markdown
 ### Native iOS shell (Capacitor) — reused verbatim from Chess Sensei, per design spec §11
@@ -530,11 +530,11 @@ follow-up, documented in `docs/ios-app-store-plan.md` (Task 5 of
 `docs/superpowers/plans/2026-09-03-native-ios-app-capacitor.md`).
 ```
 
-- [ ] **Step 3: Update the `ServiceWorkerRegistration.tsx` Structure entry**
+- [x] **Step 3: Update the `ServiceWorkerRegistration.tsx` Structure entry**
 
 Find the line describing it (currently notes "No native-platform guard yet -- Phase 10 must add one"). Update it to reflect the guard now being in place.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add CLAUDE.md
