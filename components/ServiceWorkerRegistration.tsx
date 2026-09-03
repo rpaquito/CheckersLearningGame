@@ -1,5 +1,6 @@
 'use client';
 
+import { Capacitor } from '@capacitor/core';
 import { useEffect } from 'react';
 
 /**
@@ -19,18 +20,18 @@ import { useEffect } from 'react';
  *   `registration.update()` whenever the app returns to the foreground
  *   (`visibilitychange` -> visible) closes that gap.
  *
- * Deliberately has NO native-platform guard (unlike Chess Sensei's own
- * ServiceWorkerRegistration.tsx, which skips registration inside its
- * Capacitor shell via `Capacitor.isNativePlatform()`): this repo has no
- * `@capacitor/core` dependency yet -- native iOS is Phase 10 (design spec
- * §11/§13). **Phase 10 must add that guard back** when it wires up
- * Capacitor, exactly as chess's own version does -- inside a native
- * WKWebView the bundle already ships on disk (`webDir: 'out'`), so there's
- * nothing for a service worker to cache and no reason to risk one behaving
- * oddly inside it.
+ * Skips registration entirely inside the native Capacitor shell (see the
+ * native-platform guard below) -- ported from Chess Sensei's own
+ * ServiceWorkerRegistration.tsx once this repo gained the same
+ * `@capacitor/core` dependency (native iOS phase, design spec §11/§13).
  */
 export function ServiceWorkerRegistration() {
   useEffect(() => {
+    // Inside the native Capacitor shell, the bundle already ships on disk
+    // (webDir: 'out', see capacitor.config.ts) -- there's nothing for the
+    // service worker to cache, and no reason to risk one behaving oddly
+    // inside a WKWebView.
+    if (Capacitor.isNativePlatform()) return;
     if (!navigator.serviceWorker) return;
 
     let registration: ServiceWorkerRegistration | null = null;
