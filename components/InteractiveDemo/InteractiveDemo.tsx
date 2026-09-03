@@ -5,6 +5,7 @@ import type { Board, CheckersMove, Color, Square } from '@/lib/checkers/types';
 import { legalMovesFrom, applyMove } from '@/lib/checkers/moveGeneration';
 import { CheckersBoard } from '@/components/CheckersBoard/CheckersBoard';
 import { ChipButton } from '@/components/ChipButton/ChipButton';
+import { useTranslation } from '@/lib/i18n/useTranslation';
 
 export interface PieceDemo {
   title: string;
@@ -31,6 +32,7 @@ export interface PieceDemo {
  * the slide/capture-fade animation to fire instead of a hard snap.
  */
 export function InteractiveDemo({ title, description, board: initialBoard, square: initialSquare }: PieceDemo) {
+  const { t } = useTranslation();
   const protagonistColor: Color = initialBoard[initialSquare - 1]?.color ?? 'b';
   const opponentColor: Color = protagonistColor === 'b' ? 'w' : 'b';
   const [board, setBoard] = useState<Board>(initialBoard);
@@ -67,7 +69,7 @@ export function InteractiveDemo({ title, description, board: initialBoard, squar
           onSquareClick={handleSquareClick}
         />
         <ChipButton color="pink" onClick={handleReset}>
-          Reiniciar
+          {t.interactiveDemo.reset}
         </ChipButton>
       </div>
       <div>

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { buildBoard, squareAt } from '@/lib/checkers/demoBoards';
 import { InteractiveDemo } from './InteractiveDemo';
+import { saveSettings, DEFAULT_SETTINGS } from '@/lib/settings/settings';
 
 const DEMO_BOARD = buildBoard([{ row: 3, col: 2, color: 'b', kind: 'man' }]);
 const START = squareAt(3, 2);
@@ -70,5 +71,11 @@ describe('InteractiveDemo', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('shows the English reset label when settings.language is "en"', () => {
+    saveSettings({ ...DEFAULT_SETTINGS, language: 'en' });
+    renderDemo();
+    expect(screen.getByRole('button', { name: 'Reset' })).toBeInTheDocument();
   });
 });
