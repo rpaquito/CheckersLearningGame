@@ -18,7 +18,7 @@ describe('simpleMovesFrom', () => {
   it('a black man on the edge (square 12) has only one forward target', () => {
     const board = createInitialBoard();
     expect(simpleMovesFrom(board, 12)).toEqual([
-      { from: 12, to: 16, captures: [], promotes: false },
+      { from: 12, to: 16, captures: [], promotes: false, path: [16] },
     ]);
   });
 
@@ -49,7 +49,7 @@ describe('simpleMovesFrom', () => {
     // off-board (null), neighbor(21,'ne')=17.
     const board = createInitialBoard();
     expect(simpleMovesFrom(board, 21)).toEqual([
-      { from: 21, to: 17, captures: [], promotes: false },
+      { from: 21, to: 17, captures: [], promotes: false, path: [17] },
     ]);
   });
 
@@ -90,7 +90,7 @@ describe('captureMovesFrom', () => {
     board[10] = { color: 'b', kind: 'man' }; // 11
     board[14] = { color: 'w', kind: 'man' }; // 15
     expect(captureMovesFrom(board, 11)).toEqual([
-      { from: 11, to: 18, captures: [15], promotes: false },
+      { from: 11, to: 18, captures: [15], promotes: false, path: [18] },
     ]);
   });
 
@@ -115,7 +115,7 @@ describe('captureMovesFrom', () => {
     board[14] = { color: 'w', kind: 'man' }; // 15
     board[21] = { color: 'w', kind: 'man' }; // 22
     expect(captureMovesFrom(board, 11)).toEqual([
-      { from: 11, to: 25, captures: [15, 22], promotes: false },
+      { from: 11, to: 25, captures: [15, 22], promotes: false, path: [18, 25] },
     ]);
   });
 
@@ -125,7 +125,7 @@ describe('captureMovesFrom', () => {
     board[25] = { color: 'w', kind: 'man' }; // 26 -- captured, landing 31 is the back row
     board[26] = { color: 'w', kind: 'man' }; // 27 -- only reachable from 31 if the chain continued as a king (it must not)
     expect(captureMovesFrom(board, 22)).toEqual([
-      { from: 22, to: 31, captures: [26], promotes: true },
+      { from: 22, to: 31, captures: [26], promotes: true, path: [31] },
     ]);
   });
 
@@ -150,8 +150,18 @@ describe('captureMovesFrom', () => {
     board[14] = { color: 'w', kind: 'man' }; // 15 -- captured going "backward" (north) for black
     board[6] = { color: 'w', kind: 'man' }; // 7 -- captured continuing backward from the landing square
     expect(captureMovesFrom(board, 18)).toEqual([
-      { from: 18, to: 2, captures: [15, 7], promotes: false },
+      { from: 18, to: 2, captures: [15, 7], promotes: false, path: [11, 2] },
     ]);
+  });
+
+  it("a capture chain's path records every intermediate landing square, ending in `to`", () => {
+    const board = emptyBoard();
+    board[10] = { color: 'b', kind: 'man' }; // 11
+    board[14] = { color: 'w', kind: 'man' }; // 15
+    board[21] = { color: 'w', kind: 'man' }; // 22
+    const [move] = captureMovesFrom(board, 11);
+    expect(move.path).toEqual([18, 25]);
+    expect(move.path[move.path.length - 1]).toBe(move.to);
   });
 });
 
@@ -198,7 +208,7 @@ describe('applyMove', () => {
     const board = emptyBoard();
     board[10] = { color: 'b', kind: 'man' }; // 11
     board[14] = { color: 'w', kind: 'man' }; // 15
-    const next = applyMove(board, { from: 11, to: 18, captures: [15], promotes: false });
+    const next = applyMove(board, { from: 11, to: 18, captures: [15], promotes: false, path: [18] });
     expect(next[10]).toBeNull();
     expect(next[14]).toBeNull();
     expect(next[17]).toEqual({ color: 'b', kind: 'man' });
@@ -208,7 +218,7 @@ describe('applyMove', () => {
     const board = emptyBoard();
     board[21] = { color: 'b', kind: 'man' }; // 22
     board[25] = { color: 'w', kind: 'man' }; // 26
-    const next = applyMove(board, { from: 22, to: 31, captures: [26], promotes: true });
+    const next = applyMove(board, { from: 22, to: 31, captures: [26], promotes: true, path: [31] });
     expect(next[30]).toEqual({ color: 'b', kind: 'king' });
     expect(next[21]).toBeNull();
     expect(next[25]).toBeNull();
@@ -218,12 +228,12 @@ describe('applyMove', () => {
     const board = emptyBoard();
     board[10] = { color: 'b', kind: 'man' }; // 11
     const before = board.slice();
-    applyMove(board, { from: 11, to: 15, captures: [], promotes: false });
+    applyMove(board, { from: 11, to: 15, captures: [], promotes: false, path: [15] });
     expect(board).toEqual(before);
   });
 
   it('throws if there is no piece at the from square', () => {
     const board = emptyBoard();
-    expect(() => applyMove(board, { from: 1, to: 5, captures: [], promotes: false })).toThrow();
+    expect(() => applyMove(board, { from: 1, to: 5, captures: [], promotes: false, path: [5] })).toThrow();
   });
 });

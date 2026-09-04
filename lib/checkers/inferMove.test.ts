@@ -11,7 +11,7 @@ function emptyBoard(): (Piece | null)[] {
 describe('inferMove', () => {
   it('infers a simple move between two consecutive positions', () => {
     const board = createInitialBoard();
-    const move = { from: 11, to: 15, captures: [], promotes: false };
+    const move = { from: 11, to: 15, captures: [], promotes: false, path: [15] };
     const next = applyMove(board, move);
     expect(inferMove(board, 'b', next)).toEqual(move);
   });
@@ -22,7 +22,7 @@ describe('inferMove', () => {
     const board = emptyBoard();
     board[10] = { color: 'b', kind: 'man' }; // 11
     board[14] = { color: 'w', kind: 'man' }; // 15
-    const move = { from: 11, to: 18, captures: [15], promotes: false };
+    const move = { from: 11, to: 18, captures: [15], promotes: false, path: [18] };
     const next = applyMove(board, move);
     expect(inferMove(board, 'b', next)).toEqual(move);
   });
@@ -35,7 +35,7 @@ describe('inferMove', () => {
     // (man), exercising boardsEqual's kind comparison.
     const board = emptyBoard();
     board[26] = { color: 'b', kind: 'man' }; // square 27
-    const move = { from: 27, to: 31, captures: [], promotes: true };
+    const move = { from: 27, to: 31, captures: [], promotes: true, path: [31] };
     const next = applyMove(board, move);
     expect(inferMove(board, 'b', next)).toEqual(move);
     expect(next[30]).toEqual({ color: 'b', kind: 'king' });
@@ -46,7 +46,7 @@ describe('inferMove', () => {
     board[10] = { color: 'b', kind: 'man' }; // 11
     board[14] = { color: 'w', kind: 'man' }; // 15
     board[21] = { color: 'w', kind: 'man' }; // 22
-    const move = { from: 11, to: 25, captures: [15, 22], promotes: false };
+    const move = { from: 11, to: 25, captures: [15, 22], promotes: false, path: [18, 25] };
     const next = applyMove(board, move);
     expect(inferMove(board, 'b', next)).toEqual(move);
   });

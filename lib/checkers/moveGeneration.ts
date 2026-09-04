@@ -17,6 +17,7 @@ export function simpleMovesFrom(board: Board, square: Square): CheckersMove[] {
         to,
         captures: [],
         promotes: piece.kind === 'man' && isBackRowFor(to, piece.color),
+        path: [to],
       });
     }
   }
@@ -27,6 +28,7 @@ interface ChainResult {
   to: Square;
   captures: Square[];
   promotes: boolean;
+  path: Square[];
 }
 
 function captureChainsFrom(
@@ -35,6 +37,7 @@ function captureChainsFrom(
   kind: PieceKind,
   current: Square,
   capturedSoFar: readonly Square[],
+  pathSoFar: readonly Square[],
 ): ChainResult[] {
   const directions = kind === 'king' ? ALL_DIRECTIONS : FORWARD_DIRECTIONS[color];
   const results: ChainResult[] = [];
@@ -51,13 +54,14 @@ function captureChainsFrom(
     if (workingBoard[landing - 1] !== null) continue;
 
     const nowCaptured = [...capturedSoFar, mid];
+    const nowPath = [...pathSoFar, landing];
     const justPromoted = kind === 'man' && isBackRowFor(landing, color);
 
     if (justPromoted) {
       // A man reaching the king row stops immediately — it does not
       // continue capturing in the same turn as a newly-crowned king. See
       // design spec §2/§12 and CLAUDE.md's "promotion mid-chain" note.
-      results.push({ to: landing, captures: nowCaptured, promotes: true });
+      results.push({ to: landing, captures: nowCaptured, promotes: true, path: nowPath });
       continue;
     }
 
@@ -69,12 +73,12 @@ function captureChainsFrom(
     const savedCurrent = workingBoard[current - 1];
     workingBoard[current - 1] = null;
     workingBoard[landing - 1] = savedCurrent;
-    const further = captureChainsFrom(workingBoard, color, kind, landing, nowCaptured);
+    const further = captureChainsFrom(workingBoard, color, kind, landing, nowCaptured, nowPath);
     workingBoard[landing - 1] = null;
     workingBoard[current - 1] = savedCurrent;
 
     if (further.length === 0) {
-      results.push({ to: landing, captures: nowCaptured, promotes: false });
+      results.push({ to: landing, captures: nowCaptured, promotes: false, path: nowPath });
     } else {
       results.push(...further);
     }
@@ -87,11 +91,12 @@ export function captureMovesFrom(board: Board, square: Square): CheckersMove[] {
   const piece = board[square - 1];
   if (!piece) return [];
   const working = board.slice() as (Piece | null)[];
-  return captureChainsFrom(working, piece.color, piece.kind, square, []).map((r) => ({
+  return captureChainsFrom(working, piece.color, piece.kind, square, [], []).map((r) => ({
     from: square,
     to: r.to,
     captures: r.captures,
     promotes: r.promotes,
+    path: r.path,
   }));
 }
 

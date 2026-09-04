@@ -23,7 +23,7 @@ describe('useCheckersGame', () => {
     expect(result.current.state.turn).toBe('w');
     expect(result.current.state.board[10]).toBeNull();
     expect(result.current.state.board[14]).toEqual({ color: 'b', kind: 'man' });
-    expect(result.current.state.lastMove).toEqual({ from: 11, to: 15, captures: [], promotes: false });
+    expect(result.current.state.lastMove).toEqual({ from: 11, to: 15, captures: [], promotes: false, path: [15] });
   });
 
   it('makeMove rejects an illegal move and returns false', () => {

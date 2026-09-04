@@ -6,7 +6,7 @@ import { findBestMove } from './search';
 import type { Board, CheckersMove, Color } from './types';
 
 const board = createInitialBoard();
-const move: CheckersMove = { from: 11, to: 15, captures: [], promotes: false };
+const move: CheckersMove = { from: 11, to: 15, captures: [], promotes: false, path: [15] };
 
 describe('gradeMove', () => {
   it('grades a move with zero loss as boa', async () => {
@@ -88,8 +88,8 @@ describe('gradeMove', () => {
     // blunder -- scoring ~104 points worse than the best move (6-9) at
     // GRADE_DEPTH -- while 6-9 is the engine's own top choice. Verify both
     // are still actually legal here before trusting that.
-    const blunderMove: CheckersMove = { from: 5, to: 9, captures: [], promotes: false };
-    const betterMove: CheckersMove = { from: 6, to: 9, captures: [], promotes: false };
+    const blunderMove: CheckersMove = { from: 5, to: 9, captures: [], promotes: false, path: [9] };
+    const betterMove: CheckersMove = { from: 6, to: 9, captures: [], promotes: false, path: [9] };
     const legalMoves = allLegalMoves(position, turn);
     expect(legalMoves).toContainEqual(blunderMove);
     expect(legalMoves).toContainEqual(betterMove);

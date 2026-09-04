@@ -62,7 +62,7 @@ describe('createCheckersEngineClient', () => {
     const worker = new FakeWorker();
     const client = createCheckersEngineClient(() => worker);
     const board = createInitialBoard();
-    const move = { from: 11, to: 15, captures: [], promotes: false };
+    const move = { from: 11, to: 15, captures: [], promotes: false, path: [15] };
 
     const promise = client.getBestMove(board, 'b', { maxDepth: 3, timeBudgetMs: 200, randomness: 0 });
     expect(worker.posted).toEqual([{ type: 'getBestMove', board, turn: 'b', options: { maxDepth: 3, timeBudgetMs: 200, randomness: 0 } }]);
@@ -96,7 +96,7 @@ describe('createCheckersEngineClient', () => {
     expect(worker.posted).toHaveLength(1);
     expect(worker.posted[0].type).toBe('getBestMove');
 
-    worker.respond({ type: 'bestMove', move: { from: 11, to: 15, captures: [], promotes: false } });
+    worker.respond({ type: 'bestMove', move: { from: 11, to: 15, captures: [], promotes: false, path: [15] } });
     await firstPromise;
 
     // Now that the first resolved, the second's request should have gone out.
@@ -207,7 +207,7 @@ describe('createCheckersEngineClient', () => {
 
     const first = client.getBestMove(board, 'b', { maxDepth: 1, timeBudgetMs: 10, randomness: 0 });
     expect(worker.messageListenerCount).toBe(1);
-    worker.respond({ type: 'bestMove', move: { from: 11, to: 15, captures: [], promotes: false } });
+    worker.respond({ type: 'bestMove', move: { from: 11, to: 15, captures: [], promotes: false, path: [15] } });
     await first;
     expect(worker.messageListenerCount).toBe(0);
 

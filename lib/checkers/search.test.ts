@@ -142,7 +142,7 @@ describe('findBestMove', () => {
     board[8] = { color: 'b', kind: 'man' }; // square 9
     board[17] = { color: 'w', kind: 'man' }; // square 18
     const result = findBestMove(board, 'b', { maxDepth: 4, timeBudgetMs: 2000, randomness: 0 });
-    expect(result.move).toEqual({ from: 9, to: 13, captures: [], promotes: false });
+    expect(result.move).toEqual({ from: 9, to: 13, captures: [], promotes: false, path: [13] });
   });
 
   it('respects the time budget and returns promptly even with a large maxDepth', () => {
@@ -171,7 +171,7 @@ describe('findBestMove', () => {
     const result = findBestMove(board, 'b', { maxDepth: 20, timeBudgetMs: 5000, randomness: 0 });
     const elapsedMs = Date.now() - start;
 
-    expect(result.move).toEqual({ from: 18, to: 25, captures: [22], promotes: false });
+    expect(result.move).toEqual({ from: 18, to: 25, captures: [22], promotes: false, path: [25] });
     expect(result.candidates).toHaveLength(1);
     expect(elapsedMs).toBeLessThan(200); // a depth-20 search of this position takes many seconds
   });
@@ -238,7 +238,7 @@ describe('findBestMove', () => {
 
     const result = findBestMove(board, 'b', { maxDepth: 6, timeBudgetMs: 60_000, randomness: 0 });
 
-    expect(result.move).toEqual({ from: 21, to: 25, captures: [], promotes: false });
+    expect(result.move).toEqual({ from: 21, to: 25, captures: [], promotes: false, path: [25] });
 
     const fast = result.candidates.find((c) => c.move.from === 21 && c.move.to === 25);
     const slow = result.candidates.find((c) => c.move.from === 22 && c.move.to === 26);

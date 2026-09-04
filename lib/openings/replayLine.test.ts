@@ -16,13 +16,13 @@ describe('replayLine', () => {
 
     expect(result).toHaveLength(2);
     expect(result[0].notation).toBe('11-15');
-    expect(result[0].move).toEqual({ from: 11, to: 15, captures: [], promotes: false });
+    expect(result[0].move).toEqual({ from: 11, to: 15, captures: [], promotes: false, path: [15] });
     expect(result[0].explanation).toEqual({ pt: 'Ocupa o centro.', en: 'Occupies the center.' });
     expect(result[0].board[14]).toEqual({ color: 'b', kind: 'man' }); // square 15, index 14
     expect(result[0].board[10]).toBeNull(); // square 11, now vacated
 
     expect(result[1].notation).toBe('23-19');
-    expect(result[1].move).toEqual({ from: 23, to: 19, captures: [], promotes: false });
+    expect(result[1].move).toEqual({ from: 23, to: 19, captures: [], promotes: false, path: [19] });
     expect(result[1].board[18]).toEqual({ color: 'w', kind: 'man' }); // square 19
   });
 

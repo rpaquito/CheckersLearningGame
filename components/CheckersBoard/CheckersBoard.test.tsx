@@ -121,7 +121,7 @@ describe('CheckersBoard interaction', () => {
         legalTargets={[]}
         mandatoryCaptureSquares={[]}
         lastMove={null}
-        suggestedMove={{ from: 11, to: 15, captures: [], promotes: false }}
+        suggestedMove={{ from: 11, to: 15, captures: [], promotes: false, path: [15] }}
         onSquareClick={() => {}}
       />,
     );
@@ -157,7 +157,7 @@ function emptyBoard(): (Piece | null)[] {
 describe('CheckersBoard animation', () => {
   it('moves a piece to its new square when the board prop reflects a simple move', () => {
     const board1 = createInitialBoard();
-    const move = { from: 11, to: 15, captures: [], promotes: false };
+    const move = { from: 11, to: 15, captures: [], promotes: false, path: [15] };
     const board2 = applyMove(board1, move);
     const { container, rerender } = render(
       <CheckersBoard board={board1} turn="b" selectedSquare={null} legalTargets={[]} mandatoryCaptureSquares={[]} lastMove={null} onSquareClick={() => {}} />,
@@ -175,7 +175,7 @@ describe('CheckersBoard animation', () => {
       const board1 = emptyBoard();
       board1[10] = { color: 'b', kind: 'man' }; // 11
       board1[14] = { color: 'w', kind: 'man' }; // 15
-      const move = { from: 11, to: 18, captures: [15], promotes: false };
+      const move = { from: 11, to: 18, captures: [15], promotes: false, path: [18] };
       const board2 = applyMove(board1, move);
       const { container, rerender } = render(
         <CheckersBoard board={board1} turn="b" selectedSquare={null} legalTargets={[]} mandatoryCaptureSquares={[]} lastMove={null} onSquareClick={() => {}} />,
