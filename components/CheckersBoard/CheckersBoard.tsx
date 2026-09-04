@@ -20,6 +20,13 @@ export interface CheckersBoardProps {
   interactive?: boolean;
   boardTheme?: BoardTheme;
   pieceStyle?: PieceStyle;
+  /** 'w' (default) = today's fixed rendering, Black top/White bottom.
+   *  'b' = flipped 180 degrees so Black's pieces render at the bottom --
+   *  used by /jogar in vs-computer mode so the human's chosen color is
+   *  always closest to them. A pure display transform, computed here, not
+   *  in lib/checkers/ -- no rules-engine code needs it, only rendering
+   *  does. */
+  orientation?: Color;
   onSquareClick?: (square: Square) => void;
 }
 
@@ -53,6 +60,7 @@ export function CheckersBoard({
   interactive = true,
   boardTheme = 'nebulosa',
   pieceStyle = 'classico',
+  orientation = 'w',
   onSquareClick,
 }: CheckersBoardProps): ReactElement {
   const [displayPieces, setDisplayPieces] = useState<DisplayPiece[]>(() => initialDisplayPieces(board));
@@ -92,9 +100,16 @@ export function CheckersBoard({
     return () => clearTimeout(timer);
   }, [board, turn]);
 
+  // A full 180-degree rotation (both row and col reversed), not a
+  // one-axis mirror -- a plain vertical flip would scramble which
+  // diagonal direction reads as "forward" for each color. Same technique
+  // Chess Sensei's ChessBoard uses for its own orientation prop.
+  const flipped = orientation === 'b';
   const squares: ReactElement[] = [];
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
+  for (let visualRow = 0; visualRow < 8; visualRow++) {
+    for (let visualCol = 0; visualCol < 8; visualCol++) {
+      const row = flipped ? 7 - visualRow : visualRow;
+      const col = flipped ? 7 - visualCol : visualCol;
       const square = rowColToSquare(row, col);
       if (square === null) {
         squares.push(
@@ -144,6 +159,8 @@ export function CheckersBoard({
       <div className="pointer-events-none absolute inset-0">
         {displayPieces.map((piece) => {
           const { row, col } = squareToRowCol(piece.square);
+          const visualRow = flipped ? 7 - row : row;
+          const visualCol = flipped ? 7 - col : col;
           return (
             <div
               key={piece.id}
@@ -153,7 +170,7 @@ export function CheckersBoard({
                 piece.color === 'b' ? 'text-stone-900' : 'text-stone-50',
                 piece.removing ? 'opacity-0 scale-75' : 'opacity-100',
               ].join(' ')}
-              style={{ left: `${col * 12.5}%`, top: `${row * 12.5}%`, width: '12.5%', height: '12.5%' }}
+              style={{ left: `${visualCol * 12.5}%`, top: `${visualRow * 12.5}%`, width: '12.5%', height: '12.5%' }}
             >
               <PieceIcon type={piece.kind} style={pieceStyle} />
             </div>

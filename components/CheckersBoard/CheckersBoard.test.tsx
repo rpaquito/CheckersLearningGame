@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, fireEvent, act } from '@testing-library/react';
-import { createInitialBoard } from '@/lib/checkers/board';
+import { createInitialBoard, squareToRowCol } from '@/lib/checkers/board';
 import { applyMove } from '@/lib/checkers/moveGeneration';
 import type { Piece } from '@/lib/checkers/types';
 import { CheckersBoard } from './CheckersBoard';
@@ -262,5 +262,58 @@ describe('CheckersBoard theming', () => {
       />,
     );
     expect(classico.querySelector('svg')?.innerHTML).not.toBe(moderno.querySelector('svg')?.innerHTML);
+  });
+});
+
+describe('CheckersBoard orientation', () => {
+  it('positions pieces for the default (white-at-bottom) orientation when the prop is omitted', () => {
+    const { container } = render(
+      <CheckersBoard
+        board={createInitialBoard()}
+        turn="b"
+        selectedSquare={null}
+        legalTargets={[]}
+        mandatoryCaptureSquares={[]}
+        lastMove={null}
+      />,
+    );
+    const piece = container.querySelector('[data-square="1"]') as HTMLElement;
+    const { row, col } = squareToRowCol(1);
+    expect(piece.style.left).toBe(`${col * 12.5}%`);
+    expect(piece.style.top).toBe(`${row * 12.5}%`);
+  });
+
+  it('flips piece positions 180 degrees when orientation is "b"', () => {
+    const { container } = render(
+      <CheckersBoard
+        board={createInitialBoard()}
+        turn="b"
+        selectedSquare={null}
+        legalTargets={[]}
+        mandatoryCaptureSquares={[]}
+        lastMove={null}
+        orientation="b"
+      />,
+    );
+    const piece = container.querySelector('[data-square="1"]') as HTMLElement;
+    const { row, col } = squareToRowCol(1);
+    expect(piece.style.left).toBe(`${(7 - col) * 12.5}%`);
+    expect(piece.style.top).toBe(`${(7 - row) * 12.5}%`);
+  });
+
+  it('still renders 32 clickable squares and 24 pieces when flipped', () => {
+    const { container } = render(
+      <CheckersBoard
+        board={createInitialBoard()}
+        turn="b"
+        selectedSquare={null}
+        legalTargets={[]}
+        mandatoryCaptureSquares={[]}
+        lastMove={null}
+        orientation="b"
+      />,
+    );
+    expect(container.querySelectorAll('button')).toHaveLength(32);
+    expect(container.querySelectorAll('svg')).toHaveLength(24);
   });
 });
