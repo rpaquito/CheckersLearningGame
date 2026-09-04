@@ -172,11 +172,9 @@ components/GameEndModal/
                            # Conventions below
 components/RulesModal/
   RulesModal.tsx          # checkers rules content -- movement, mandatory
-                           # capture, promotion, draw conditions. Built and
-                           # ready, but not linked from anywhere yet -- no
-                           # trigger button in /jogar opens it; that's
-                           # expected, not a regression, same as
-                           # /configurar above.
+                           # capture, promotion, draw conditions. Opened via
+                           # a "Regras"/"Rules" trigger button in /jogar's
+                           # action row -- see CLAUDE.md Conventions below.
 components/LearningPanel/
   LearningPanel.tsx       # toggle + suggestion button/explanation -- "dumb"
                            # like CheckersBoard, doesn't know whose turn it
@@ -1371,6 +1369,23 @@ someday work) had been silently returning 0 the whole time. This phase's `viewpo
 theme-color support -- visually inert on any device without a notch/Dynamic Island, but a
 real, previously-dormant fix that only starts mattering once Phase 10's native iOS shell
 exists.
+
+### `RulesModal` is now linked from `/jogar`
+
+A plain `underline` text button ("Regras"/"Rules", `t.jogar.rules`) sits in `/jogar`'s existing
+action row alongside "Menu inicial"/"Reiniciar partida", matching that row's own plain-Tailwind
+style rather than introducing new chrome. Opens/closes via a simple `rulesOpen` boolean state,
+same pattern as `gameEndOpen`/`confirmAction` already used on this page -- no new interaction
+model. `RulesModal` itself needed no changes; only its first real consumer was missing.
+
+**`/jogar/page.tsx` has no dedicated test file** (confirmed while making this change, not
+something this change introduces) -- this page's size (engine/worker wiring, `useSearchParams`,
+router navigation, multiple modals) has made it a lib/component-level-tested page rather than a
+page-level-tested one throughout this project: the reusable pieces it composes (`RulesModal`,
+`GameEndModal`, `ConfirmModal`, `useCheckersGame`, `moveGeneration.ts`, etc.) each have their own
+thorough tests, but the page itself does not. This two-line wiring addition was verified via
+`tsc`/`lint`/the full suite (unaffected) plus a manual dev-server render check instead of adding
+a new test harness for the whole page just for one button.
 
 ## Deploy
 

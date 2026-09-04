@@ -42,6 +42,7 @@ export interface Dictionary {
     gameOver: string;
     engineUnavailable: string;
     restart: string;
+    rules: string;
     confirmRestartTitle: string;
     confirmRestartMessage: string;
     confirmRestartButton: string;

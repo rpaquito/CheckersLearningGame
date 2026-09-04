@@ -49,6 +49,7 @@ export const pt: Dictionary = {
     gameOver: 'Fim de jogo',
     engineUnavailable: 'Erro no motor de jogo — reinicie a partida',
     restart: 'Reiniciar partida',
+    rules: 'Regras',
     confirmRestartTitle: 'Reiniciar partida?',
     confirmRestartMessage: 'Vais perder o progresso desta partida.',
     confirmRestartButton: 'Reiniciar',

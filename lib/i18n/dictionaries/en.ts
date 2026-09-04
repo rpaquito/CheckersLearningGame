@@ -49,6 +49,7 @@ export const en: Dictionary = {
     gameOver: 'Game over',
     engineUnavailable: 'Engine error — restart the game',
     restart: 'Restart game',
+    rules: 'Rules',
     confirmRestartTitle: 'Restart game?',
     confirmRestartMessage: "You'll lose this game's progress.",
     confirmRestartButton: 'Restart',

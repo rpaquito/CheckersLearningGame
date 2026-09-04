@@ -7,6 +7,7 @@ import { useCheckersGame } from '@/lib/checkers/useCheckersGame';
 import { CheckersBoard } from '@/components/CheckersBoard/CheckersBoard';
 import { GameEndModal } from '@/components/GameEndModal/GameEndModal';
 import { ConfirmModal } from '@/components/ConfirmModal/ConfirmModal';
+import { RulesModal } from '@/components/RulesModal/RulesModal';
 import { createCheckersEngineClient, type CheckersEngineClient } from '@/lib/checkers/checkersEngineClient';
 import { difficultyToEngineOptions, SUGGESTION_ENGINE_OPTIONS, type Difficulty } from '@/lib/checkers/difficulty';
 import { resolvePlayerColor, type PlayerColor } from '@/lib/checkers/playerColor';
@@ -44,6 +45,7 @@ function JogarPageInner() {
   const [engineError, setEngineError] = useState(false);
   const [gameEndOpen, setGameEndOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   const { show } = useToast();
   const { t, locale } = useTranslation();
@@ -361,6 +363,9 @@ function JogarPageInner() {
         <button type="button" onClick={handleRestartClick} className="underline">
           {t.jogar.restart}
         </button>
+        <button type="button" onClick={() => setRulesOpen(true)} className="underline">
+          {t.jogar.rules}
+        </button>
       </div>
 
       <GameEndModal
@@ -381,6 +386,7 @@ function JogarPageInner() {
         onConfirm={handleConfirmAction}
         onCancel={handleCancelConfirm}
       />
+      <RulesModal open={rulesOpen} onClose={() => setRulesOpen(false)} />
     </main>
   );
 }
