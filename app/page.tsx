@@ -92,7 +92,7 @@ export default function HomePage() {
           reads consistently even before real background art exists. */}
       <PageGlow pinkOpacity={0.35} darken={[0.55, 0.85]} />
 
-      <PageHeader size="text-5xl" softDrop={5} logoSize="lg" wrapperClassName="w-full max-w-sm">
+      <PageHeader size="text-4xl sm:text-5xl" softDrop={5} logoSize="lg" wrapperClassName="w-full max-w-sm">
         {t.menu.title}
       </PageHeader>
 
