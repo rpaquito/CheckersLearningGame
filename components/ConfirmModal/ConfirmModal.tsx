@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
+import { MODAL_BACKDROP_CLASS, PageTitle } from '@/components/PageChrome/PageChrome';
+import { ChipButton } from '@/components/ChipButton/ChipButton';
 import { useFocusTrap } from '@/lib/ui/useFocusTrap';
 
 export interface ConfirmModalProps {
@@ -17,9 +19,12 @@ export interface ConfirmModalProps {
 // RulesModal (backdrop, role="dialog", focus trap, Escape closes), but no
 // ✕ button: with only two actions (confirm/cancel), a third place to say
 // "no" would be redundant. Escape and a backdrop click both count as
-// cancel, same as clicking cancelLabel explicitly. Used by /jogar (Task 7)
-// to confirm "Reiniciar partida"/"Menu inicial" when there's progress to
-// lose, but generic enough for other call sites later.
+// cancel, same as clicking cancelLabel explicitly. Chrome ported from
+// Chess Sensei's own ConfirmModal.tsx (see docs/superpowers/plans/
+// 2026-09-04-ui-parity-and-game-completion.md) -- the same
+// MODAL_BACKDROP_CLASS/PageTitle/ChipButton building blocks GameEndModal
+// already uses in this repo. Props/behavior are unchanged from before this
+// restyle.
 export function ConfirmModal({
   open,
   title,
@@ -43,11 +48,7 @@ export function ConfirmModal({
   if (!open) return null;
 
   return (
-    <div
-      data-testid="confirm-modal-backdrop"
-      onClick={onCancel}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-    >
+    <div data-testid="confirm-modal-backdrop" onClick={onCancel} className={MODAL_BACKDROP_CLASS}>
       <div
         ref={panelRef}
         tabIndex={-1}
@@ -55,25 +56,19 @@ export function ConfirmModal({
         aria-modal="true"
         aria-label={title}
         onClick={(event) => event.stopPropagation()}
-        className="w-full max-w-sm rounded-2xl border-2 border-stone-700 bg-white p-6 text-stone-900 outline-none"
+        className="w-full max-w-sm rounded-2xl border-2 border-purple bg-ink-soft p-6 text-lilac outline-none"
       >
-        <h2 className="mb-2 text-xl font-bold">{title}</h2>
-        <p className="mb-5 text-sm text-stone-700">{message}</p>
+        <PageTitle as="h2" size="text-xl" strokeWidth={1} className="mb-2">
+          {title}
+        </PageTitle>
+        <p className="mb-5 text-sm text-lilac/80">{message}</p>
         <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="rounded-xl bg-red-600 px-4 py-2 font-bold text-white"
-          >
+          <ChipButton color="pink" onClick={onConfirm}>
             {confirmLabel}
-          </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-xl bg-stone-200 px-4 py-2 font-bold text-stone-900"
-          >
+          </ChipButton>
+          <ChipButton color="purple" onClick={onCancel}>
             {cancelLabel}
-          </button>
+          </ChipButton>
         </div>
       </div>
     </div>
