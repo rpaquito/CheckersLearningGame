@@ -15,6 +15,7 @@ import { createCheckersEngineClient, type CheckersEngineClient } from '@/lib/che
 import { difficultyToEngineOptions, SUGGESTION_ENGINE_OPTIONS, type Difficulty } from '@/lib/checkers/difficulty';
 import { resolvePlayerColor, type PlayerColor } from '@/lib/checkers/playerColor';
 import { applyMove, legalMovesFrom as legalMovesFromEngine } from '@/lib/checkers/moveGeneration';
+import { candidatesForTarget, narrowCandidates, resolveCandidates } from '@/lib/checkers/moveDisambiguation';
 import { useLearningModePreference } from '@/lib/checkers/useLearningModePreference';
 import { gradeMove } from '@/lib/checkers/gradeMove';
 import { explainMove, describeMoveForToast } from '@/lib/checkers/moveExplanation';
@@ -45,6 +46,16 @@ function JogarPageInner() {
 
   const { state, legalMovesFrom, makeMove, reset } = useCheckersGame(true);
   const [selected, setSelected] = useState<Square | null>(null);
+  // Only ever set when a clicked destination genuinely has 2+ distinct
+  // legal routes (rare -- needs a king with 3+ simultaneous capture
+  // routes, see CLAUDE.md's "Capture-chain disambiguation" entry). Every
+  // normal move resolves in one click and never touches this state.
+  const [pendingChoice, setPendingChoice] = useState<{
+    from: Square;
+    candidates: CheckersMove[];
+    prefixLength: number;
+    nextTargets: Square[];
+  } | null>(null);
   const [engineError, setEngineError] = useState(false);
   const [gameEndOpen, setGameEndOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
@@ -122,7 +133,7 @@ function JogarPageInner() {
       .getBestMove(state.board, state.turn, options)
       .then((move) => {
         if (cancelled) return;
-        if (!makeMove(move.from, move.to)) {
+        if (!makeMove(move)) {
           console.error('[jogar] engine returned a move the game rejected:', move);
           setEngineError(true);
         }
@@ -222,27 +233,69 @@ function JogarPageInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.lastMove]);
 
-  const legalTargets = selected !== null ? legalMovesFrom(selected) : [];
+  const legalTargets = pendingChoice
+    ? pendingChoice.nextTargets
+    : selected !== null
+      ? legalMovesFrom(selected)
+      : [];
+
+  function commitMove(move: CheckersMove) {
+    if (learningModeEnabled) {
+      pendingGradeRef.current = { boardBeforeMove: state.board, moverColor: state.turn };
+    }
+    const ok = makeMove(move);
+    if (ok) {
+      if (move.promotes) {
+        hapticKinged();
+      } else if (move.captures.length > 0) {
+        hapticCapture();
+      } else {
+        hapticMove();
+      }
+    }
+  }
 
   function handleSquareClick(square: Square) {
     if (state.isGameOver) return;
     if (isAiMode && state.turn === aiColor) return;
 
-    if (selected !== null && legalTargets.includes(square)) {
-      if (learningModeEnabled) {
-        pendingGradeRef.current = { boardBeforeMove: state.board, moverColor: state.turn };
-      }
-      const playedMove = legalMovesFromEngine(state.board, state.turn, selected).find((m) => m.to === square);
-      makeMove(selected, square);
-      setSelected(null);
-      if (playedMove) {
-        if (playedMove.promotes) {
-          hapticKinged();
-        } else if (playedMove.captures.length > 0) {
-          hapticCapture();
+    if (pendingChoice) {
+      if (pendingChoice.nextTargets.includes(square)) {
+        const narrowed = narrowCandidates(pendingChoice.candidates, pendingChoice.prefixLength, square);
+        const resolution = resolveCandidates(narrowed, pendingChoice.prefixLength + 1);
+        if (resolution.status === 'resolved') {
+          commitMove(resolution.move);
+          setPendingChoice(null);
+          setSelected(null);
         } else {
-          hapticMove();
+          setPendingChoice({
+            from: pendingChoice.from,
+            candidates: narrowed,
+            prefixLength: pendingChoice.prefixLength + 1,
+            nextTargets: resolution.nextTargets,
+          });
         }
+        return;
+      }
+      // Click outside the current narrowed choices -- cancel and fall
+      // through to normal selection handling below.
+      setPendingChoice(null);
+    }
+
+    // Recomputed fresh here rather than reusing the outer `legalTargets`
+    // const: while `pendingChoice` was active a moment ago, that const
+    // still reflects the (now-cancelled) narrowed target list from this
+    // same render, not the real full legal-move list for `selected`.
+    const currentTargets = selected !== null ? legalMovesFrom(selected) : [];
+    if (selected !== null && currentTargets.includes(square)) {
+      const allMoves = legalMovesFromEngine(state.board, state.turn, selected);
+      const candidates = candidatesForTarget(allMoves, square);
+      const resolution = resolveCandidates(candidates, 0);
+      if (resolution.status === 'resolved') {
+        commitMove(resolution.move);
+        setSelected(null);
+      } else {
+        setPendingChoice({ from: selected, candidates, prefixLength: 0, nextTargets: resolution.nextTargets });
       }
       return;
     }
@@ -286,6 +339,7 @@ function JogarPageInner() {
   function doReset() {
     reset();
     setSelected(null);
+    setPendingChoice(null);
     setEngineError(false);
     setGameEndOpen(false);
   }
