@@ -1,9 +1,12 @@
 'use client';
 
-import Link from 'next/link';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCheckersGame } from '@/lib/checkers/useCheckersGame';
+import { ChipButton } from '@/components/ChipButton/ChipButton';
+import { PageGlow } from '@/components/PageChrome/PageChrome';
+import { BACKGROUND_THEMES } from '@/lib/settings/themes';
+import { useSettings } from '@/lib/settings/useSettings';
 import { CheckersBoard } from '@/components/CheckersBoard/CheckersBoard';
 import { GameEndModal } from '@/components/GameEndModal/GameEndModal';
 import { ConfirmModal } from '@/components/ConfirmModal/ConfirmModal';
@@ -49,6 +52,7 @@ function JogarPageInner() {
 
   const { show } = useToast();
   const { t, locale } = useTranslation();
+  const { settings } = useSettings();
   const [learningModeEnabled, toggleLearningMode] = useLearningModePreference();
   const [suggestedMove, setSuggestedMove] = useState<CheckersMove | null>(null);
   const [suggestionExplanation, setSuggestionExplanation] = useState<string | null>(null);
@@ -300,12 +304,12 @@ function JogarPageInner() {
     }
   }
 
-  function handleMenuClick(event: React.MouseEvent) {
+  function handleMenuClick() {
     if (hasProgressToLose) {
-      event.preventDefault();
       setConfirmAction('menu');
+    } else {
+      router.push('/');
     }
-    // else: let the <Link> navigate normally.
   }
 
   function handleConfirmAction() {
@@ -334,8 +338,18 @@ function JogarPageInner() {
   else statusText = turnLabel;
 
   return (
-    <main className="flex min-h-dvh flex-col items-center gap-4 p-4">
-      <p aria-live="polite">{statusText}</p>
+    <main className="relative flex min-h-dvh flex-col items-center gap-4 p-4 overflow-hidden">
+      <div
+        className="fixed inset-0 -z-10 bg-ink bg-cover bg-center"
+        style={{
+          backgroundImage: `url(${BACKGROUND_THEMES[settings.backgroundTheme].image}), ${BACKGROUND_THEMES[settings.backgroundTheme].fallbackGradient}`,
+        }}
+        aria-hidden="true"
+      />
+      <PageGlow position="fixed" pinkOpacity={0.35} darken={[0.55, 0.85]} />
+      <p aria-live="polite" className="relative font-semibold text-gold">
+        {statusText}
+      </p>
       <CheckersBoard
         board={state.board}
         turn={state.turn}
@@ -345,6 +359,14 @@ function JogarPageInner() {
         lastMove={state.lastMove}
         suggestedMove={learningModeEnabled ? suggestedMove : null}
         interactive={boardInteractive}
+        boardTheme={settings.boardTheme}
+        pieceStyle={settings.pieceStyle}
+        // Local two-player mode must NEVER flip -- humanColor defaults to
+        // 'b' there from an unrelated URL-parsing fallback (no `color`
+        // param exists in local mode's URL), which is not a real chosen
+        // color and must not drive orientation. Only vs-computer mode
+        // orients to the human's actual choice.
+        orientation={isAiMode ? humanColor : 'w'}
         onSquareClick={handleSquareClick}
       />
       <LearningPanel
@@ -356,16 +378,16 @@ function JogarPageInner() {
         hasSuggestion={suggestedMove !== null}
         suggestionExplanation={suggestionExplanation}
       />
-      <div className="flex gap-4">
-        <Link href="/" className="underline" onClick={handleMenuClick}>
+      <div className="relative flex flex-wrap justify-center gap-3">
+        <ChipButton color="purple" onClick={handleMenuClick}>
           {t.common.mainMenu}
-        </Link>
-        <button type="button" onClick={handleRestartClick} className="underline">
+        </ChipButton>
+        <ChipButton color="pink" onClick={handleRestartClick}>
           {t.jogar.restart}
-        </button>
-        <button type="button" onClick={() => setRulesOpen(true)} className="underline">
+        </ChipButton>
+        <ChipButton color="cyan" onClick={() => setRulesOpen(true)}>
           {t.jogar.rules}
-        </button>
+        </ChipButton>
       </div>
 
       <GameEndModal
