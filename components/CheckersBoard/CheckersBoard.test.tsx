@@ -316,4 +316,25 @@ describe('CheckersBoard orientation', () => {
     expect(container.querySelectorAll('button')).toHaveLength(32);
     expect(container.querySelectorAll('svg')).toHaveLength(24);
   });
+
+  it('flips which square is the first dark square in DOM order when orientation is "b"', () => {
+    const { container } = render(
+      <CheckersBoard
+        board={createInitialBoard()}
+        turn="b"
+        selectedSquare={null}
+        legalTargets={[]}
+        mandatoryCaptureSquares={[]}
+        lastMove={null}
+        orientation="b"
+      />,
+    );
+    const buttons = container.querySelectorAll('button');
+    // Unflipped, the first dark square in DOM order is square 1 (top-left
+    // region) -- see the existing "calls onSquareClick with the clicked
+    // square number" test elsewhere in this file. Flipped 180 degrees, the
+    // grid's first dark square in DOM order must be square 32 instead --
+    // independently verifying the GRID flips, not just piece positions.
+    expect(buttons[0]).toHaveAttribute('aria-label', 'square 32');
+  });
 });

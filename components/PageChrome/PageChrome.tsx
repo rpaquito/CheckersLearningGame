@@ -89,12 +89,13 @@ export function PageHeader({ logoSize = 'md', wrapperClassName = '', ...titlePro
 }
 
 /**
- * Shared `fixed inset-0` backdrop intended for GameEndModal/RulesModal/
- * ConfirmModal once they are restyled with the new chrome in a future phase.
- * `pt-`/`pb-` (instead of a flat `p-4`) keep the panel clear of a
- * notch/Dynamic Island once the native iOS shell exists (Phase 11) --
- * `max(1rem, …)` keeps today's usual 1rem margin on any device without a
- * notch, or in a normal browser.
+ * Shared `fixed inset-0` backdrop used by GameEndModal, RulesModal, and
+ * ConfirmModal (all three restyled with the new chrome -- GameEndModal in the
+ * gameend-mascots phase, RulesModal/ConfirmModal in the
+ * ui-parity-and-game-completion phase). `pt-`/`pb-` (instead of a flat `p-4`)
+ * keep the panel clear of a notch/Dynamic Island now that the native iOS
+ * shell exists (Phase 11) -- `max(1rem, …)` keeps today's usual 1rem margin
+ * on any device without a notch, or in a normal browser.
  */
 export const MODAL_BACKDROP_CLASS =
   'fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 ' +

@@ -663,14 +663,17 @@ bundles them there, since the engine's own evaluator is what feeds them) but
 are not wired into any UI — no toast, no suggestion overlay. That's Phase 4
 (learning mode), which needs highlighting UI that doesn't exist yet.
 
-### `/configurar` and `/jogar`'s AI wiring stay chrome-free, matching `/jogar`'s own precedent
+### `/configurar` and `/jogar`'s AI wiring stay chrome-free, matching `/jogar`'s own precedent (now historical)
 
-Neither imports Chess Sensei's `ChipButton`/`PageChrome`/`useTranslation`/
-`GameSetup`/`ToggleGroup` — none of that exists in this repo yet (Phase 5
-visual identity, Phase 8 i18n). Plain Tailwind, hardcoded Portuguese
-strings, same as `/jogar`'s existing style. `/configurar` is also not linked
-from anywhere yet — it is reached by typing the URL until Phase 5 builds the
-real menu.
+**This entry is now historical.** At the time it was written, neither page imported Chess
+Sensei's `ChipButton`/`PageChrome`/`useTranslation`/`GameSetup`/`ToggleGroup` — none of
+that existed in this repo yet (Phase 5 visual identity, Phase 8 i18n hadn't landed), so
+both stayed plain Tailwind with hardcoded Portuguese strings, and `/configurar` wasn't
+linked from anywhere yet (reached only by typing the URL). All of that has since changed:
+`ChipButton`/`PageChrome`/`ToggleGroup` have existed since the visual-identity/i18n phases,
+`/configurar` has long been linked from the home page's "vs computer" tile, and the
+ui-parity-and-game-completion phase (see "UI parity and game completion" below) gave both
+pages the full chrome treatment. See that entry for the current, accurate picture.
 
 ### `color=random` is resolved by `/configurar`, never by `/jogar`
 
@@ -1053,18 +1056,22 @@ wiped before the test runs, which can be surprising. When writing a test that
 depends on persisted settings, seed them inside a `beforeEach` hook so they're
 applied after the global clear, or inside the individual `it` block.
 
-### `DEFAULT_SETTINGS.pieceStyle` is `'anime'`; `CheckersBoard`'s default is `'classico'`
+### `DEFAULT_SETTINGS.pieceStyle` is `'anime'`; `CheckersBoard`'s default is `'classico'` -- and both are reachable in production
 
 `lib/settings/settings.ts`'s `DEFAULT_SETTINGS.pieceStyle` defaults to `'anime'`,
-reflecting the Phase 5 visual redesign. However, `components/CheckersBoard/CheckersBoard.tsx`'s
-own `pieceStyle` prop defaults to `'classico'` when the prop is omitted. This is
-a deliberate, known divergence, not a bug: no page in this codebase currently
-wires `settings.pieceStyle` into the board component, so today nothing observes
-the mismatch. `CheckersBoard`'s default exists purely as a fallback for tests
-and any future caller that renders the board without reading settings at all.
-Once a later phase wires settings into `/jogar`'s board rendering, it will
-explicitly pass `settings.pieceStyle` and the CheckersBoard default will become
-unreachable in the real app (but harmless to keep around).
+reflecting the Phase 5 visual redesign. `components/CheckersBoard/CheckersBoard.tsx`'s
+own `pieceStyle` prop still defaults to `'classico'` when the prop is omitted. This
+divergence was previously dormant (nothing wired real settings into the board), but as
+of the ui-parity-and-game-completion phase (see "UI parity and game completion" below)
+`/jogar` now explicitly passes `boardTheme={settings.boardTheme}`/
+`pieceStyle={settings.pieceStyle}` into `CheckersBoard`, so the `'anime'` default is what
+a player actually sees there. The `'classico'`/`'nebulosa'` fallback did NOT become
+unreachable, though: `components/InteractiveDemo/InteractiveDemo.tsx`,
+`components/OpeningStudy/OpeningStudy.tsx`, and `components/OpeningPractice/
+OpeningPractice.tsx` all still omit these props deliberately (per that phase's explicit
+scope decision to wire settings into `/jogar` only), so tutorial (`/aprender`) and
+openings-trainer boards genuinely still render with `CheckersBoard`'s own `'classico'`/
+`'nebulosa'` defaults in production today -- not just in tests.
 
 ### Demo boards use row/col coordinates, not hand-typed square numbers
 
@@ -1432,12 +1439,25 @@ of the app, and fixed a real usability gap for vs-computer games playing as Blac
    for the identical situation. The function still checks `hasProgressToLose` first and opens
    `ConfirmModal` instead of navigating immediately when there's a game in progress to lose.
 
-**Net effect on two now-stale CLAUDE.md entries** (both updated in this same phase, see their
+**Net effect on four now-stale CLAUDE.md entries** (all updated in this same phase, see their
 own text above for the historical framing): "Toast/Modal chrome was ported behaviorally first"
 no longer lists `ConfirmModal`/`RulesModal` as plain-Tailwind holdouts -- every modal in this repo
 now shares the anime chrome. "`/configurar`, `/jogar`, and modals stayed plain-Tailwind by spec"
 is now historical -- both pages have the full chrome treatment and `/jogar` wires real `settings`
-into `CheckersBoard` for the first time.
+into `CheckersBoard` for the first time. "`/configurar` and `/jogar`'s AI wiring stay chrome-free"
+is likewise now historical -- both pages long ago gained the chrome components it said didn't
+exist yet. And "`DEFAULT_SETTINGS.pieceStyle` is `'anime'`; `CheckersBoard`'s default is
+`'classico'`" no longer describes a dormant mismatch -- see its own updated text for what's
+actually reachable in production now.
+
+**A previously-invisible piece-style inconsistency is now visible, by design.** Since
+`DEFAULT_SETTINGS.pieceStyle` is `'anime'` but the tutorial (`/aprender`) and openings-trainer
+boards still render `CheckersBoard`'s own `'classico'` default (see that entry above), a player
+who never visits `/opcoes` now sees anime-style pieces in `/jogar` but classico-style pieces in
+`/aprender`'s demos and the openings trainer. This is a deliberate, spec-sanctioned scope
+boundary from this phase (settings-wiring was scoped to `/jogar` only), not a bug -- but it's
+newly visible: previously everything rendered `'classico'`, since nothing read real settings
+anywhere.
 
 Verified via the full suite: `tsc --noEmit` (clean), `npm run lint` (clean), `npm run test`
 (all test files pass, including `CheckersBoard.test.tsx`, `ConfirmModal.test.tsx`,

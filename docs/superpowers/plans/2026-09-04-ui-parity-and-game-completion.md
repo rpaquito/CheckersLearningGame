@@ -1,6 +1,6 @@
 # UI Parity & Game Completion Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Bring `/jogar` and `/configurar` up to the same "anime" visual identity as `/` and `/opcoes`, make the board orient to the human player, make `/opcoes`'s board-theme/piece-style settings actually reach the game board, and restyle `ConfirmModal`/`RulesModal`/`LearningPanel` to match Chess Sensei's chrome — closing every gap the user flagged after reviewing the live app.
 
@@ -28,7 +28,7 @@
 
 **Interfaces:** None — this is a self-contained JSX prop change.
 
-- [ ] **Step 1: Change the title's font size to be responsive**
+- [x] **Step 1: Change the title's font size to be responsive**
 
 In `app/page.tsx`, find:
 
@@ -44,11 +44,11 @@ Replace with:
 
 This keeps today's `text-5xl` size from Tailwind's `sm:` breakpoint (640px) up — tablet/desktop are unaffected — and only shrinks the phone case, where "Checkers Sensei" (longer than Chess Sensei's title) currently wraps.
 
-- [ ] **Step 2: Verify visually at a phone viewport**
+- [x] **Step 2: Verify visually at a phone viewport**
 
 Run `npm run dev`, then open `http://localhost:3000` in a browser tool (e.g. the `claude-in-chrome` or `chrome-devtools` MCP tools) sized to a 375px-wide viewport (iPhone SE class — the narrowest common target). Confirm "Checkers Sensei" renders on a single line, sitting cleanly next to the logo. Then resize to 768px+ and confirm the title still renders at the original, larger size with no visual regression.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add app/page.tsx
@@ -69,7 +69,7 @@ Claude-Session: https://claude.ai/code/session_01PSoURGNKX7i2buwPDDsGQC"
 **Interfaces:**
 - Produces: `CheckersBoardProps.orientation?: Color` (default `'w'`). `'w'` = today's fixed rendering (Black top, White bottom, unchanged). `'b'` = flipped 180° (White top, Black bottom) so a Black-playing human sees their own pieces at the bottom. Consumed by Task 7 (`/jogar`).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Open `components/CheckersBoard/CheckersBoard.test.tsx`. Add `squareToRowCol` to the existing import from `@/lib/checkers/board`:
 
@@ -134,12 +134,12 @@ describe('CheckersBoard orientation', () => {
 });
 ```
 
-- [ ] **Step 2: Run the tests to verify the new ones fail**
+- [x] **Step 2: Run the tests to verify the new ones fail**
 
 Run: `npm run test -- CheckersBoard`
 Expected: the two new orientation-specific assertions FAIL (the flipped-position test fails because nothing flips yet; the default-position test should already PASS since it matches current behavior — if it doesn't, stop and re-check the test against the actual current rendering before continuing).
 
-- [ ] **Step 3: Implement the orientation prop**
+- [x] **Step 3: Implement the orientation prop**
 
 In `components/CheckersBoard/CheckersBoard.tsx`, add `orientation` to the props interface:
 
@@ -258,12 +258,12 @@ with:
         })}
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `npm run test -- CheckersBoard`
 Expected: PASS — all previously-existing `CheckersBoard.test.tsx` tests plus the three new orientation tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add components/CheckersBoard/CheckersBoard.tsx components/CheckersBoard/CheckersBoard.test.tsx
@@ -283,12 +283,12 @@ Claude-Session: https://claude.ai/code/session_01PSoURGNKX7i2buwPDDsGQC"
 
 **Interfaces:** Unchanged — `ConfirmModalProps` (`open`, `title`, `message`, `confirmLabel`, `cancelLabel`, `onConfirm`, `onCancel`) is identical before and after.
 
-- [ ] **Step 1: Confirm the existing test suite passes before touching the component**
+- [x] **Step 1: Confirm the existing test suite passes before touching the component**
 
 Run: `npm run test -- ConfirmModal`
 Expected: PASS (baseline, before any change).
 
-- [ ] **Step 2: Rewrite the component with the ported chrome**
+- [x] **Step 2: Rewrite the component with the ported chrome**
 
 Replace the full contents of `components/ConfirmModal/ConfirmModal.tsx`:
 
@@ -371,12 +371,12 @@ export function ConfirmModal({
 }
 ```
 
-- [ ] **Step 3: Run the tests to verify they still pass unmodified**
+- [x] **Step 3: Run the tests to verify they still pass unmodified**
 
 Run: `npm run test -- ConfirmModal`
 Expected: PASS. If anything fails, the restyle broke a behavioral contract (a `data-testid`, `role`, or visible text) — fix the component to match the original contract, do not edit the test.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add components/ConfirmModal/ConfirmModal.tsx
@@ -396,12 +396,12 @@ Claude-Session: https://claude.ai/code/session_01PSoURGNKX7i2buwPDDsGQC"
 
 **Interfaces:** Unchanged — `RulesModalProps` (`open`, `onClose`) is identical before and after. Content sections (`t.rulesModal.*`) are unchanged.
 
-- [ ] **Step 1: Confirm the existing test suite passes before touching the component**
+- [x] **Step 1: Confirm the existing test suite passes before touching the component**
 
 Run: `npm run test -- RulesModal`
 Expected: PASS (baseline).
 
-- [ ] **Step 2: Rewrite the component with the ported chrome**
+- [x] **Step 2: Rewrite the component with the ported chrome**
 
 Replace the full contents of `components/RulesModal/RulesModal.tsx`:
 
@@ -492,12 +492,12 @@ export function RulesModal({ open, onClose }: RulesModalProps) {
 }
 ```
 
-- [ ] **Step 3: Run the tests to verify they still pass unmodified**
+- [x] **Step 3: Run the tests to verify they still pass unmodified**
 
 Run: `npm run test -- RulesModal`
 Expected: PASS. If anything fails, the restyle broke a behavioral contract — fix the component, do not edit the test.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add components/RulesModal/RulesModal.tsx
@@ -517,12 +517,12 @@ Claude-Session: https://claude.ai/code/session_01PSoURGNKX7i2buwPDDsGQC"
 
 **Interfaces:** Unchanged — `LearningPanelProps` (`enabled`, `onToggle: () => void`, `canRequestSuggestion`, `onRequestSuggestion`, `suggestionLoading`, `hasSuggestion`, `suggestionExplanation`) is identical before and after. **Note:** unlike Chess Sensei's `LearningPanel` (whose `onToggle` takes an `enabled: boolean` argument and renders a checkbox), this component's `onToggle` takes no argument and stays a toggle button — that is an existing, different contract this task does not change, only its styling.
 
-- [ ] **Step 1: Confirm the existing test suite passes before touching the component**
+- [x] **Step 1: Confirm the existing test suite passes before touching the component**
 
 Run: `npm run test -- LearningPanel`
 Expected: PASS (baseline).
 
-- [ ] **Step 2: Rewrite the component with the ported chrome**
+- [x] **Step 2: Rewrite the component with the ported chrome**
 
 Replace the full contents of `components/LearningPanel/LearningPanel.tsx`:
 
@@ -596,12 +596,12 @@ export function LearningPanel({
 }
 ```
 
-- [ ] **Step 3: Run the tests to verify they still pass unmodified**
+- [x] **Step 3: Run the tests to verify they still pass unmodified**
 
 Run: `npm run test -- LearningPanel`
 Expected: PASS. If anything fails, the restyle broke a behavioral contract — fix the component, do not edit the test.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add components/LearningPanel/LearningPanel.tsx
@@ -624,12 +624,12 @@ Claude-Session: https://claude.ai/code/session_01PSoURGNKX7i2buwPDDsGQC"
 - Produces: `GameSetup` — a self-contained component (no props) rendering difficulty/color `ToggleGroup`s pre-filled from `useSettings()`, plus a start button that navigates to `/jogar?mode=ai&difficulty=...&color=...`.
 - Consumes: `ToggleGroup` (`components/ToggleGroup/ToggleGroup.tsx`, existing — `legend`, `options: {value, label}[]`, `value`, `onChange`), `useSettings()` (existing), `resolvePlayerColor` (`lib/checkers/playerColor.ts`, existing), `clearSavedGame` (`lib/checkers/useCheckersGame.ts`, existing), `useTranslation()` (existing, reads `t.difficulty.*`, `t.color.*`, `t.configurar.*`).
 
-- [ ] **Step 1: Confirm the existing `/configurar` test suite passes before touching anything**
+- [x] **Step 1: Confirm the existing `/configurar` test suite passes before touching anything**
 
 Run: `npm run test -- configurar`
 Expected: PASS (baseline).
 
-- [ ] **Step 2: Create `GameSetup`**
+- [x] **Step 2: Create `GameSetup`**
 
 Create `components/GameSetup/GameSetup.tsx`:
 
@@ -715,7 +715,7 @@ export function GameSetup() {
 }
 ```
 
-- [ ] **Step 3: Rewrite `/configurar/page.tsx` to use it**
+- [x] **Step 3: Rewrite `/configurar/page.tsx` to use it**
 
 Replace the full contents of `app/configurar/page.tsx`:
 
@@ -749,12 +749,12 @@ export default function ConfigurarPage() {
 }
 ```
 
-- [ ] **Step 4: Run the tests to verify they still pass unmodified**
+- [x] **Step 4: Run the tests to verify they still pass unmodified**
 
 Run: `npm run test -- configurar`
 Expected: PASS. `app/configurar/page.test.tsx` asserts `aria-pressed` on the difficulty/color toggle buttons and text on the heading/start button — all preserved by `GameSetup`/`ToggleGroup`. If anything fails, fix the component, do not edit the test.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add components/GameSetup/GameSetup.tsx app/configurar/page.tsx
@@ -774,7 +774,7 @@ Claude-Session: https://claude.ai/code/session_01PSoURGNKX7i2buwPDDsGQC"
 **Interfaces:**
 - Consumes: `CheckersBoard`'s `orientation`/`boardTheme`/`pieceStyle` props (Task 2, pre-existing), `useSettings()` (existing), `BACKGROUND_THEMES` (`lib/settings/themes.ts`, existing), `PageGlow` (`components/PageChrome/PageChrome.tsx`, existing), `ChipButton` (existing).
 
-- [ ] **Step 1: Update imports**
+- [x] **Step 1: Update imports**
 
 In `app/jogar/page.tsx`, remove the now-unused `Link` import:
 
@@ -791,7 +791,7 @@ import { BACKGROUND_THEMES } from '@/lib/settings/themes';
 import { useSettings } from '@/lib/settings/useSettings';
 ```
 
-- [ ] **Step 2: Read settings inside the component**
+- [x] **Step 2: Read settings inside the component**
 
 Find:
 
@@ -808,7 +808,7 @@ Replace with:
   const { settings } = useSettings();
 ```
 
-- [ ] **Step 3: Fix `handleMenuClick` to not depend on an intercepted `<Link>` navigation**
+- [x] **Step 3: Fix `handleMenuClick` to not depend on an intercepted `<Link>` navigation**
 
 `ChipButton`'s `onClick` prop is typed `() => void` (no event parameter) — swapping the plain `<Link>` for a `ChipButton` means `handleMenuClick` can no longer rely on `event.preventDefault()` to stop a `<Link>`'s default navigation. Chess Sensei's own `/jogar` solves this the same way: no `href` at all on the menu button, navigate explicitly via `router.push('/')` when there's nothing to confirm.
 
@@ -838,7 +838,7 @@ Replace with:
 
 (`router` is already in scope — `useRouter()` is called near the top of this component and already used by `handleConfirmAction`.)
 
-- [ ] **Step 4: Replace the returned JSX**
+- [x] **Step 4: Replace the returned JSX**
 
 Find the full `return (...)` block (everything from `return (` through the closing `);` right before the component's closing `}`, i.e. the whole `<main>...</main>` tree). Replace it with:
 
@@ -919,7 +919,7 @@ Find the full `return (...)` block (everything from `return (` through the closi
   );
 ```
 
-- [ ] **Step 5: Type-check and lint**
+- [x] **Step 5: Type-check and lint**
 
 Run: `npx tsc --noEmit`
 Expected: no errors (in particular, no unused-import error for `Link`, no type error on any `ChipButton onClick`).
@@ -927,12 +927,12 @@ Expected: no errors (in particular, no unused-import error for `Link`, no type e
 Run: `npm run lint`
 Expected: no errors.
 
-- [ ] **Step 6: Run the full test suite**
+- [x] **Step 6: Run the full test suite**
 
 Run: `npm run test`
 Expected: PASS. `/jogar` has no dedicated test file (an established, documented precedent in this repo — see CLAUDE.md's "`/jogar/page.tsx` has no dedicated test file" entry), so this step is confirming no other test broke, not testing this page directly.
 
-- [ ] **Step 7: Manual verification with the dev server**
+- [x] **Step 7: Manual verification with the dev server**
 
 Run `npm run dev`, then using a browser tool:
 
@@ -942,7 +942,7 @@ Run `npm run dev`, then using a browser tool:
 4. In any game, confirm the background image is visible behind the board (not blank/default), and that "Menu inicial"/"Reiniciar partida"/"Regras" render as the pink/purple/cyan chip buttons, not plain underlined text.
 5. Change the board theme and piece style in `/opcoes`, return to `/jogar`, and confirm the board reflects the new theme/pieces.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add app/jogar/page.tsx
@@ -958,27 +958,27 @@ Claude-Session: https://claude.ai/code/session_01PSoURGNKX7i2buwPDDsGQC"
 
 **Files:** None (verification only).
 
-- [ ] **Step 1: Type-check the whole project**
+- [x] **Step 1: Type-check the whole project**
 
 Run: `npx tsc --noEmit`
 Expected: no errors.
 
-- [ ] **Step 2: Lint the whole project**
+- [x] **Step 2: Lint the whole project**
 
 Run: `npm run lint`
 Expected: no errors.
 
-- [ ] **Step 3: Run the full test suite**
+- [x] **Step 3: Run the full test suite**
 
 Run: `npm run test`
 Expected: PASS, including every test from Tasks 2–6 and every previously-existing test in the project (in particular `CheckersBoard.test.tsx`, `ConfirmModal.test.tsx`, `RulesModal.test.tsx`, `LearningPanel.test.tsx`, `app/configurar/page.test.tsx`).
 
-- [ ] **Step 4: Production build**
+- [x] **Step 4: Production build**
 
 Run: `npm run build`
 Expected: build succeeds (this also re-confirms the `useSearchParams()`/`Suspense` boundary in `/jogar` is intact — see CLAUDE.md's entry on why a plain `npm run build` catches that specific class of bug that `npm run dev` doesn't).
 
-- [ ] **Step 5: Push to `main`**
+- [x] **Step 5: Push to `main`**
 
 Per this project's process rules (CLAUDE.md), every task's changes are committed directly to `main` and pushed once its tests pass. If Tasks 1–7 were each already pushed individually as they landed, this step is a no-op check that `main` is clean and pushed; otherwise push now:
 
@@ -987,7 +987,7 @@ git status
 git push origin main
 ```
 
-- [ ] **Step 6: Update CLAUDE.md**
+- [x] **Step 6: Update CLAUDE.md**
 
 Add a new entry to `CLAUDE.md`'s Conventions section recording what this phase changed and why, following the file's existing style (one entry per non-obvious decision). At minimum, record:
 - `CheckersBoard`'s new `orientation` prop and the "local two-player mode never flips" rule.
