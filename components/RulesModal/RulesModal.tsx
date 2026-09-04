@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { MODAL_BACKDROP_CLASS, PageTitle } from '@/components/PageChrome/PageChrome';
 import { useFocusTrap } from '@/lib/ui/useFocusTrap';
 import { useTranslation } from '@/lib/i18n/useTranslation';
 
@@ -9,6 +10,12 @@ export interface RulesModalProps {
   onClose: () => void;
 }
 
+// Chrome ported from Chess Sensei's own RulesModal.tsx (see
+// docs/superpowers/plans/2026-09-04-ui-parity-and-game-completion.md).
+// Content is unchanged from before this restyle -- man/king movement,
+// mandatory capture, multi-jump, promotion, draw conditions (design spec
+// §5's checkers-specific list), read from the shared dictionary
+// (t.rulesModal) same as before.
 export function RulesModal({ open, onClose }: RulesModalProps) {
   const { t } = useTranslation();
   const panelRef = useFocusTrap(open);
@@ -24,10 +31,6 @@ export function RulesModal({ open, onClose }: RulesModalProps) {
 
   if (!open) return null;
 
-  // Content per design spec §5's explicit list for this modal's checkers
-  // version: man/king movement, mandatory capture, multi-jump, promotion,
-  // draw conditions. Built from the shared dictionary (t.rulesModal) as of
-  // the i18n UI retrofit plan (Phase 8b) -- previously a hardcoded PT array.
   const sections = [
     { title: t.rulesModal.movementTitle, items: [t.rulesModal.man, t.rulesModal.king] },
     { title: t.rulesModal.mandatoryCaptureTitle, items: [t.rulesModal.mandatoryCapture, t.rulesModal.multiJump] },
@@ -36,11 +39,7 @@ export function RulesModal({ open, onClose }: RulesModalProps) {
   ];
 
   return (
-    <div
-      data-testid="rules-modal-backdrop"
-      onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-    >
+    <div data-testid="rules-modal-backdrop" onClick={onClose} className={MODAL_BACKDROP_CLASS}>
       <div
         ref={panelRef}
         tabIndex={-1}
@@ -48,15 +47,17 @@ export function RulesModal({ open, onClose }: RulesModalProps) {
         aria-modal="true"
         aria-label={t.rulesModal.title}
         onClick={(event) => event.stopPropagation()}
-        className="max-h-[85dvh] w-full max-w-lg overflow-y-auto rounded-2xl border-2 border-stone-700 bg-white p-6 text-stone-900 outline-none"
+        className="max-h-[85dvh] w-full max-w-lg overflow-y-auto rounded-2xl border-2 border-purple bg-ink-soft p-6 text-lilac outline-none"
       >
         <div className="mb-4 flex items-start justify-between gap-4">
-          <h2 className="text-2xl font-bold">{t.rulesModal.title}</h2>
+          <PageTitle as="h2" size="text-2xl" strokeWidth={1}>
+            {t.rulesModal.title}
+          </PageTitle>
           <button
             type="button"
             onClick={onClose}
             aria-label={t.common.close}
-            className="rounded-full h-8 w-8 shrink-0 bg-stone-200 font-bold hover:scale-110 transition-transform"
+            className="rounded-full h-8 w-8 shrink-0 bg-pink text-[#3A0B1F] font-bold hover:scale-110 transition-transform"
           >
             ✕
           </button>
@@ -65,12 +66,12 @@ export function RulesModal({ open, onClose }: RulesModalProps) {
         <div className="flex flex-col gap-5">
           {sections.map((section) => (
             <section key={section.title}>
-              <h3 className="mb-2 font-semibold text-sky-700">{section.title}</h3>
+              <h3 className="mb-2 font-semibold text-cyan">{section.title}</h3>
               <dl className="flex flex-col gap-2">
                 {section.items.map((item) => (
                   <div key={item.title}>
-                    <dt className="font-medium">{item.title}</dt>
-                    <dd className="text-sm text-stone-700">{item.text}</dd>
+                    <dt className="font-medium text-white">{item.title}</dt>
+                    <dd className="text-sm text-lilac/80">{item.text}</dd>
                   </div>
                 ))}
               </dl>
