@@ -705,10 +705,10 @@ its own later phase: `Toast`/`RulesModal`/`GameEndModal` all call `useTranslatio
 pattern as `ToggleGroup`/`LineTabs`) -- see the i18n UI retrofit's own CLAUDE.md entries. And
 `GameEndModal` specifically gained `PageChrome`'s `PageTitle`/`MODAL_BACKDROP_CLASS` plus
 `ChipButton` and a real mascot/confetti (`public/gameend/*.webp`, `animate-confetti-pop`) in the
-gameend-mascots phase -- see that phase's own convention entry above. `ConfirmModal`/`RulesModal`
-remain plain-Tailwind, matching `/jogar`'s/`/configurar`'s own established style (see "stayed
-plain-Tailwind by spec" below for the current, accurate picture of which pages/components have
-the "anime" chrome and which don't).
+gameend-mascots phase -- see that phase's own convention entry above. **`ConfirmModal` and
+`RulesModal` gained the same `PageTitle`/`MODAL_BACKDROP_CLASS`/`ChipButton` chrome in the
+ui-parity-and-game-completion phase** (see "UI parity and game completion" below) -- every modal
+in this repo now shares the "anime" chrome; none remain plain-Tailwind.
 
 ### No 'check' toast tone — checkers has no analog
 
@@ -1003,21 +1003,16 @@ environment variables to configure (no backend, no auth, no API routes, per this
 This closes design spec §13's entire phase list (0 through 11) -- every phase in the original
 build plan has now shipped.
 
-### `/configurar`, `/jogar`, and modals stayed plain-Tailwind by spec
+### `/configurar` and `/jogar` stayed plain-Tailwind by spec -- until the ui-parity-and-game-completion phase (now superseded)
 
-Only `/` and `/opcoes` received the new PageChrome chrome and "anime"
-visual identity in this phase — this matches the spec's feature-parity table
-(§5), which marks only those two pages for "New art" in Phase 5. Every other
-page (`/configurar`, `/jogar`) and component (`RulesModal`, `ConfirmModal`,
-`LearningPanel`, `Toast`) keep their hardcoded-Portuguese,
-plain-Tailwind style until a later phase explicitly revisits them.
-(`GameEndModal` was the first exception, gaining `PageTitle`/`MODAL_BACKDROP_CLASS`/
-`ChipButton` chrome in the Phase 10d gameend-mascots phase — see this file's
-"Game-end mascots" convention entry below.) `CheckersBoard`'s
-new `boardTheme`/`pieceStyle` props exist and are tested; `/jogar` doesn't
-pass real `settings` values into them yet — it still renders with the default
-`'nebulosa'`/`'classico'`. Wiring those props through in `/jogar` is deferred
-to whichever phase gives `/jogar` its own visual pass.
+**This entry is now historical.** At the time it was written, only `/` and `/opcoes` had received
+the new `PageChrome` chrome and "anime" visual identity, matching the spec's feature-parity table
+(§5), which at that point marked only those two pages for "New art" in Phase 5. `/configurar` and
+`/jogar` kept hardcoded-Portuguese, plain-Tailwind styling, and `CheckersBoard`'s `boardTheme`/
+`pieceStyle` props existed but weren't fed real `settings` values by any page. The
+ui-parity-and-game-completion phase (see "UI parity and game completion" below) closed this gap:
+both pages now have the full chrome treatment, and `/jogar` wires real settings into
+`CheckersBoard`. See that entry for the current, accurate picture.
 
 ### `/configurar`'s initial difficulty/color reads from `useSettings()` via an "override" pattern
 
@@ -1386,6 +1381,69 @@ page-level-tested one throughout this project: the reusable pieces it composes (
 thorough tests, but the page itself does not. This two-line wiring addition was verified via
 `tsc`/`lint`/the full suite (unaffected) plus a manual dev-server render check instead of adding
 a new test harness for the whole page just for one button.
+
+### UI parity and game completion: `/jogar`/`/configurar` gain the "anime" chrome, `CheckersBoard` gains `orientation`
+
+This phase (`.superpowers/sdd/2026-09-04-ui-parity-and-game-completion/`) closed the
+remaining visual-identity gap between `/`/`/opcoes` (already redesigned in Phase 5) and the rest
+of the app, and fixed a real usability gap for vs-computer games playing as Black. Seven tasks:
+
+1. **Home title made responsive**: `app/page.tsx`'s `PageHeader` now renders at
+   `text-4xl sm:text-5xl` (was a single fixed size) so "Checkers Sensei" fits on one line on
+   narrow mobile viewports instead of wrapping.
+
+2. **`CheckersBoard` gained a new optional `orientation?: Color` prop**, default `'w'` (omitting
+   it renders exactly as before). `orientation="b"` performs a full 180-degree rotation of the
+   board -- both row and col reversed (`flipped ? 7 - visualRow : visualRow`, same for col), not
+   a one-axis mirror, because a plain vertical flip would scramble which diagonal direction reads
+   as "forward" for each color. This is the same technique Chess Sensei's own `ChessBoard` uses
+   for its orientation prop. **Local two-player mode must NEVER flip** -- both players share one
+   physical device and one board orientation regardless of whose turn it is, so `/jogar` always
+   passes `orientation="w"` in local mode (see point 7). Only vs-computer mode orients the board
+   to the human's own chosen color, so the human's own pieces always render at the bottom of
+   their screen.
+
+3. **`ConfirmModal` restyled with the "anime" chrome** -- `PageTitle`/`MODAL_BACKDROP_CLASS` from
+   `PageChrome.tsx` and `ChipButton`, the same building blocks `GameEndModal` already used.
+   Props/behavior unchanged; still a generic prop-driven primitive fed translated strings by its
+   caller (see the "Toast/Modal chrome" entry above).
+
+4. **`RulesModal` restyled the same way.** Content/props unchanged.
+
+5. **`LearningPanel` restyled the same way** (`ACTIVE_TOGGLE_STYLE`, chip-style buttons) -- but
+   its `onToggle` stayed `() => void` (a plain button), deliberately NOT converted to Chess
+   Sensei's checkbox-with-`(enabled: boolean) => void` pattern. Props/behavior unchanged.
+
+6. **New `components/GameSetup/GameSetup.tsx`** (difficulty/color `ToggleGroup`s + start button,
+   using the pre-existing "override" pattern for reading `useSettings()` safely -- see that
+   entry above) extracted from `/configurar`, which is now a thin `PageHeader`/`PageGlow`/
+   `ChipButton` chrome shell around it.
+
+7. **`/jogar` redesigned**: a `BACKGROUND_THEMES`-driven background layer plus `PageGlow`;
+   `CheckersBoard` now receives `boardTheme={settings.boardTheme}`, `pieceStyle={settings.pieceStyle}`,
+   and `orientation={isAiMode ? humanColor : 'w'}` (vs-computer mode orients to the human's chosen
+   color; local two-player mode passes the fixed `'w'`, never `humanColor`, per point 2's rule);
+   the bottom action row now uses `ChipButton`s instead of plain underlined text.
+
+   **`handleMenuClick` was rewritten from an event-based `preventDefault()` pattern to a
+   zero-argument function that calls `router.push('/')` directly**, because `ChipButton`'s
+   `onClick` prop is typed `() => void` -- there is no event parameter to call `preventDefault()`
+   on, unlike the plain `<a>`/`<button>` it replaced. This matches Chess Sensei's own precedent
+   for the identical situation. The function still checks `hasProgressToLose` first and opens
+   `ConfirmModal` instead of navigating immediately when there's a game in progress to lose.
+
+**Net effect on two now-stale CLAUDE.md entries** (both updated in this same phase, see their
+own text above for the historical framing): "Toast/Modal chrome was ported behaviorally first"
+no longer lists `ConfirmModal`/`RulesModal` as plain-Tailwind holdouts -- every modal in this repo
+now shares the anime chrome. "`/configurar`, `/jogar`, and modals stayed plain-Tailwind by spec"
+is now historical -- both pages have the full chrome treatment and `/jogar` wires real `settings`
+into `CheckersBoard` for the first time.
+
+Verified via the full suite: `tsc --noEmit` (clean), `npm run lint` (clean), `npm run test`
+(all test files pass, including `CheckersBoard.test.tsx`, `ConfirmModal.test.tsx`,
+`RulesModal.test.tsx`, `LearningPanel.test.tsx`, and `app/configurar/page.test.tsx`), and
+`npm run build` (succeeds, re-confirming `/jogar`'s `useSearchParams()`/`Suspense` boundary is
+still intact).
 
 ## Deploy
 
