@@ -25,6 +25,15 @@ export type MoveResolution =
  * `chosenPrefixLength` is how many entries of each candidate's `path`
  * have already been fixed by earlier clicks (0 on the very first click,
  * before anything has been chosen).
+ *
+ * Precondition (see CLAUDE.md's "Capture-chain disambiguation" entry):
+ * `candidates` must be non-empty and every entry's `path` must be a
+ * maximal capture chain from the same engine search -- this function does
+ * not itself guard against an empty list or a `path` shorter than
+ * `chosenPrefixLength`. Every caller in this codebase only ever narrows
+ * using a square drawn from a `nextTargets` list this function itself
+ * already produced, which is guaranteed non-empty whenever `status` was
+ * `'ambiguous'`.
  */
 export function resolveCandidates(candidates: CheckersMove[], chosenPrefixLength: number): MoveResolution {
   if (candidates.length === 1) return { status: 'resolved', move: candidates[0] };

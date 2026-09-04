@@ -41,6 +41,7 @@ export interface Dictionary {
     turnWhite: string;
     gameOver: string;
     engineUnavailable: string;
+    chooseCapture: string;
     restart: string;
     rules: string;
     confirmRestartTitle: string;

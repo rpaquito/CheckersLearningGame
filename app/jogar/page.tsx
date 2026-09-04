@@ -51,7 +51,6 @@ function JogarPageInner() {
   // routes, see CLAUDE.md's "Capture-chain disambiguation" entry). Every
   // normal move resolves in one click and never touches this state.
   const [pendingChoice, setPendingChoice] = useState<{
-    from: Square;
     candidates: CheckersMove[];
     prefixLength: number;
     nextTargets: Square[];
@@ -269,7 +268,6 @@ function JogarPageInner() {
           setSelected(null);
         } else {
           setPendingChoice({
-            from: pendingChoice.from,
             candidates: narrowed,
             prefixLength: pendingChoice.prefixLength + 1,
             nextTargets: resolution.nextTargets,
@@ -295,7 +293,7 @@ function JogarPageInner() {
         commitMove(resolution.move);
         setSelected(null);
       } else {
-        setPendingChoice({ from: selected, candidates, prefixLength: 0, nextTargets: resolution.nextTargets });
+        setPendingChoice({ candidates, prefixLength: 0, nextTargets: resolution.nextTargets });
       }
       return;
     }
@@ -388,6 +386,7 @@ function JogarPageInner() {
   let statusText: string;
   if (state.isGameOver) statusText = t.jogar.gameOver;
   else if (engineError) statusText = t.jogar.engineUnavailable;
+  else if (pendingChoice) statusText = t.jogar.chooseCapture;
   else if (isAiTurn) statusText = t.common.thinking;
   else statusText = turnLabel;
 

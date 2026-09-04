@@ -48,6 +48,7 @@ export const pt: Dictionary = {
     turnWhite: 'Vez das brancas',
     gameOver: 'Fim de jogo',
     engineUnavailable: 'Erro no motor de jogo — reinicie a partida',
+    chooseCapture: 'Escolhe a captura -- toca na casa de destino',
     restart: 'Reiniciar partida',
     rules: 'Regras',
     confirmRestartTitle: 'Reiniciar partida?',

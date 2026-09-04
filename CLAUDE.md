@@ -386,6 +386,13 @@ docs/
   ios-app-store-plan.md          # sideload/TestFlight/App-Store-submission
                                  # path for the user's own follow-up -- see
                                  # CLAUDE.md Conventions below
+lib/checkers/ (additions in the capture-chain-disambiguation phase)
+  moveDisambiguation.ts          # candidatesForTarget/resolveCandidates/
+                                 # narrowCandidates -- pure click-sequence-
+                                 # to-move resolver for the rare
+                                 # ambiguous-capture-chain case (two routes
+                                 # sharing a final `to`), see CLAUDE.md's
+                                 # "Capture-chain disambiguation" entry
 ```
 
 ## Conventions
@@ -502,6 +509,61 @@ when two chains share the same final `to` or one loops back to its own
 origin square (`from === to`). `makeMove` now takes a full `CheckersMove`
 and matches on it exactly — there is no longer a representation ambiguous
 enough for a wrong route to be silently substituted.
+
+### Capture-chain disambiguation: CheckersMove gains a path field, /jogar gains a pendingChoice flow
+
+Closes the gap the two entries above and "Known design constraint for the
+future board UI" (below) all flagged as future work: `useCheckersGame.makeMove(from,
+to)` couldn't distinguish two legal capture chains that share a final
+square but capture different pieces along the way (rare — needs a king
+with 3+ simultaneous routes), nor a chain that loops back to its own
+origin square (`from === to`).
+
+`CheckersMove` gained a required `path: Square[]` field — the chain's
+landing squares only, `path[path.length - 1] === to`, and
+`path.length === captures.length` for a capturing move — implemented in
+`lib/checkers/moveGeneration.ts`. This makes every route's identity
+provably unique, closing the gap `from`/`to` alone could never resolve.
+
+A new pure module, `lib/checkers/moveDisambiguation.ts`
+(`candidatesForTarget`/`resolveCandidates`/`narrowCandidates`), resolves a
+click sequence into a move using only `CheckersMove[]` arrays — no
+`Board`, no React, fully independent of whether a UI ever calls it. It
+depends on a precondition it does not itself enforce: callers must pass a
+non-empty list of candidates whose `path`s are all *maximal* chains from
+the same engine search — `resolveCandidates`/`narrowCandidates` don't
+guard against an empty candidate list or a `path` shorter than the
+requested prefix index. This holds by construction, not by luck:
+`moveGeneration.ts`'s `captureChainsFrom` only ever emits maximal chains
+(checkers' mandatory-continuation rule means a capture sequence that could
+continue always does), so no candidate's `path` can be a proper prefix of
+another's — and every caller in this codebase only ever narrows using a
+square drawn from a `nextTargets` list that `resolveCandidates` itself
+just produced, which is never empty when `status: 'ambiguous'`.
+
+`useCheckersGame.makeMove` changed from `(from, to) => boolean` to
+`(move: CheckersMove) => boolean`, matching by the full move shape
+(`to`/`promotes`/`captures`/`path`) against the current board's real legal
+moves — it never trusts the caller blindly.
+
+`app/jogar/page.tsx` gained a `pendingChoice` state slice that only
+activates when a clicked destination genuinely has 2+ distinct legal
+routes. Every normal move — the overwhelming majority, every normal
+multi-jump capture included — keeps the exact one-click interaction and
+single-slide animation from before; `CheckersBoard.tsx` itself is
+completely untouched by this phase, staying "dumb" as always.
+
+This is a targeted fix, not a redesign of capture UX into a step-by-step
+flow for every move — that was considered and rejected as disproportionate
+to a bug this rare (see the design spec for the full reasoning).
+
+Worth noting: `checkersEngine.worker.ts` has its own, older comment
+describing "full move equality" as matching on `from`/`to`/`promotes`/
+`captures` (no `path`) — this is still correct and doesn't need to change,
+because `from` plus the ordered `captures` list already uniquely
+determines `path` (each hop's landing square is fixed by the current
+square and the jumped square). The two "full equality" definitions in the
+codebase are equivalent, just expressed differently.
 
 ### `inferMove` takes an explicit `turn` parameter, deviating from the spec
 
@@ -985,12 +1047,16 @@ unless `Capacitor.isNativePlatform()`. **`hapticKinged` is this app's own depart
 Sensei's `hapticCheck`** -- checkers has no "check" concept; promotion (a man becoming a king) is
 the natural checkers-specific "distinct big moment" instead (design spec §11). All three fire only
 from `app/jogar/page.tsx`'s `handleSquareClick` (the human player's own move), never from the AI's
-automatic reply or a Learning Mode suggestion -- `hapticKinged`/`hapticCapture`/`hapticMove` are
-chosen by looking up the full `CheckersMove` (via `legalMovesFrom` from `moveGeneration.ts`, not
-the hook's own square-only `legalMovesFrom`) matched by `to`, *before* calling `makeMove` --
-subject to the same rare first-match-wins ambiguity CLAUDE.md's "`makeMove`'s return value" entry
-already documents for multi-route-same-destination captures, accepted for the same reason (still
-fires a correct-in-spirit haptic category).
+automatic reply or a Learning Mode suggestion -- specifically from a `commitMove(move: CheckersMove)`
+helper that both `handleSquareClick` code paths funnel through, chosen by inspecting the fields of
+that already-resolved `CheckersMove` (`move.promotes` / `move.captures.length`) rather than by any
+separate `to`-matched lookup. `move` here is either the immediately-resolved candidate (the common
+case: `resolveCandidates` returns `status: 'resolved'` on the very first click) or the final
+candidate after the player disambiguates through `pendingChoice`'s narrowing clicks (the rare case)
+-- either way it is the one real move that is about to be played, so there is no first-match-wins
+ambiguity left to accept (the ambiguity this paragraph used to describe was fixed by the
+capture-chain-disambiguation phase; see CLAUDE.md's "Capture-chain disambiguation" entry and the
+now-fixed "`makeMove`'s return value..." entry above).
 
 `components/ServiceWorkerRegistration.tsx` now has the native-platform guard its own doc comment
 had predicted since the PWA phase (`if (Capacitor.isNativePlatform()) return;`, checked before the

@@ -48,6 +48,7 @@ export const en: Dictionary = {
     turnWhite: "White's turn",
     gameOver: 'Game over',
     engineUnavailable: 'Engine error — restart the game',
+    chooseCapture: 'Choose your capture -- tap the destination square',
     restart: 'Restart game',
     rules: 'Rules',
     confirmRestartTitle: 'Restart game?',
