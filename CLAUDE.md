@@ -482,7 +482,7 @@ reflects the hydrated state, never the fresh initial one — this test
 failed against the old code (first call was the stale `turn: 'b'`) and
 passes against the fix.
 
-### `makeMove`'s return value is now reliable on every call — and its tie-break is documented, not solved
+### `makeMove`'s return value is reliable on every call, and its route-identity ambiguity is fixed
 
 An earlier version of `makeMove` computed its `boolean` return value via a
 side-effect flag set inside a `setState` functional updater
@@ -495,19 +495,13 @@ legality and the resulting state synchronously against a `gameRef` that
 mirrors `game` (kept fresh every render) instead of relying on updater
 timing at all — see `lib/checkers/useCheckersGame.ts`'s `makeMove`.
 
-Separately, `makeMove(from, to)` cannot disambiguate two distinct legal
-capture chains that happen to share the same final `to` square while
-capturing different pieces along the way (possible in checkers — a king
-with 3+ available routes to the same landing square). This is rare
-(verified via brute-force search: needs 3+ simultaneous routes, only seen
-in synthetic king-heavy endgame positions, never in 34k+ plies of random
-play from the opening) and is resolved by taking the first match found —
-deterministic, but not driven by any explicit choice. A capture chain can
-also legally return to its own origin square (`from === to`) for a king
-looping back through several jumps. Neither case has a UI resolution yet
-— if/when it needs one, step-by-step landing-square selection (the way
-real checkers UIs work) is the natural fix, requiring the board component
-to expose per-hop choices rather than a single final destination.
+**Fixed**, in a later phase (see "Capture-chain disambiguation" below):
+`CheckersMove` gained a `path: Square[]` field recording every landing
+square a route visits, making each route's identity provably unique even
+when two chains share the same final `to` or one loops back to its own
+origin square (`from === to`). `makeMove` now takes a full `CheckersMove`
+and matches on it exactly — there is no longer a representation ambiguous
+enough for a wrong route to be silently substituted.
 
 ### `inferMove` takes an explicit `turn` parameter, deviating from the spec
 

@@ -20,7 +20,7 @@ export interface CheckersGameState {
 export interface UseCheckersGameResult {
   state: CheckersGameState;
   legalMovesFrom: (square: Square) => Square[];
-  makeMove: (from: Square, to: Square) => boolean;
+  makeMove: (move: CheckersMove) => boolean;
   reset: () => void;
 }
 
@@ -127,24 +127,37 @@ export function useCheckersGame(persist: boolean = true): UseCheckersGameResult 
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(game));
   }, [game, persist, hydrated]);
 
-  const makeMove = useCallback((from: Square, to: Square): boolean => {
+  const makeMove = useCallback((move: CheckersMove): boolean => {
     const current = gameRef.current;
-    // Tie-break, documented (see CLAUDE.md): if a piece has multiple legal
-    // capture chains that share the same final `to` but capture different
-    // pieces (rare -- needs 3+ simultaneous routes, endgame-only), the
-    // first one found wins, deterministically. No disambiguation UI yet.
-    const move = legalMovesFromEngine(current.board, current.turn, from).find((m) => m.to === to);
-    if (!move) return false;
-    const nextBoard = applyMove(current.board, move) as (Piece | null)[];
+    // Re-derives legal moves from the CURRENT state (never trusts the
+    // caller blindly -- guards against a stale closure the same way the
+    // old (from, to) version did) and matches on the full move shape,
+    // `path` included. `path` makes every route provably unique (see
+    // types.ts), so unlike the old `.find(m => m.to === to)` version,
+    // this can never silently substitute a different legal route that
+    // happens to share the same `to` -- see CLAUDE.md's "Known design
+    // constraint for the future board UI" entry, closed by this change.
+    const candidates = legalMovesFromEngine(current.board, current.turn, move.from);
+    const matched = candidates.find(
+      (m) =>
+        m.to === move.to &&
+        m.promotes === move.promotes &&
+        m.captures.length === move.captures.length &&
+        m.captures.every((c, i) => c === move.captures[i]) &&
+        m.path.length === move.path.length &&
+        m.path.every((p, i) => p === move.path[i]),
+    );
+    if (!matched) return false;
+    const nextBoard = applyMove(current.board, matched) as (Piece | null)[];
     const nextTurn: Color = current.turn === 'b' ? 'w' : 'b';
-    const nextPlySinceLastCapture = move.captures.length > 0 ? 0 : current.plySinceLastCapture + 1;
+    const nextPlySinceLastCapture = matched.captures.length > 0 ? 0 : current.plySinceLastCapture + 1;
     const key = boardKey(nextBoard, nextTurn);
     const counts = new Map(current.positionCounts);
     counts.set(key, (counts.get(key) ?? 0) + 1);
     const next: PersistedGame = {
       board: nextBoard,
       turn: nextTurn,
-      lastMove: move,
+      lastMove: matched,
       plySinceLastCapture: nextPlySinceLastCapture,
       positionCounts: Array.from(counts.entries()),
     };

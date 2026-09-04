@@ -2,6 +2,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useCheckersGame, clearSavedGame, STORAGE_KEY } from './useCheckersGame';
+import type { Piece } from './types';
 
 describe('useCheckersGame', () => {
   beforeEach(() => {
@@ -18,7 +19,7 @@ describe('useCheckersGame', () => {
   it('makeMove applies a legal move and flips the turn', () => {
     const { result } = renderHook(() => useCheckersGame(false));
     act(() => {
-      expect(result.current.makeMove(11, 15)).toBe(true);
+      expect(result.current.makeMove({ from: 11, to: 15, captures: [], promotes: false, path: [15] })).toBe(true);
     });
     expect(result.current.state.turn).toBe('w');
     expect(result.current.state.board[10]).toBeNull();
@@ -29,7 +30,8 @@ describe('useCheckersGame', () => {
   it('makeMove rejects an illegal move and returns false', () => {
     const { result } = renderHook(() => useCheckersGame(false));
     act(() => {
-      expect(result.current.makeMove(11, 20)).toBe(false);
+      // 20 is not a real diagonal neighbor of 11 -- no legal move matches this shape.
+      expect(result.current.makeMove({ from: 11, to: 20, captures: [], promotes: false, path: [20] })).toBe(false);
     });
     expect(result.current.state.turn).toBe('b');
   });
@@ -37,14 +39,14 @@ describe('useCheckersGame', () => {
   it('legalMovesFrom reflects the mandatory-capture rule', () => {
     const { result } = renderHook(() => useCheckersGame(false));
     act(() => {
-      result.current.makeMove(11, 15);
+      result.current.makeMove({ from: 11, to: 15, captures: [], promotes: false, path: [15] });
     });
     act(() => {
       // NOT 23-19 -- that's the real checkers "exchange" line: 15 and 19 end
       // up diagonally adjacent with an open landing square, which would
       // hand black a mandatory capture and defeat the point of this test.
       // 24-20 is a genuinely quiet reply, nowhere near black's man at 15.
-      result.current.makeMove(24, 20);
+      result.current.makeMove({ from: 24, to: 20, captures: [], promotes: false, path: [20] });
     });
     // Black to move again with no forced capture -- square 9 has its normal simple moves.
     expect(result.current.legalMovesFrom(9).sort((a, b) => a - b)).toEqual([13, 14]);
@@ -57,19 +59,12 @@ describe('useCheckersGame', () => {
     // square 15 has a legal (forced) capture -- 15x22 landing on 18's
     // square after capturing white's man there. Every other black piece
     // (including 9, 10, 12) has no capture available, so they must sit out.
-    // Note: only the first makeMove's return value is asserted here, matching
-    // the existing "legalMovesFrom reflects the mandatory-capture rule" test
-    // above -- makeMove's boolean return is not reliable for a second call
-    // made in its own act() block right after a prior one (React's setGame
-    // updater for that call can run after this synchronous function already
-    // returned), so subsequent moves in a sequence are verified via
-    // resulting state instead, same as that existing test already does.
     const { result } = renderHook(() => useCheckersGame(false));
     act(() => {
-      expect(result.current.makeMove(11, 15)).toBe(true);
+      expect(result.current.makeMove({ from: 11, to: 15, captures: [], promotes: false, path: [15] })).toBe(true);
     });
     act(() => {
-      result.current.makeMove(22, 18);
+      result.current.makeMove({ from: 22, to: 18, captures: [], promotes: false, path: [18] });
     });
     expect(result.current.state.turn).toBe('b');
     expect(result.current.state.mandatoryCaptureSquares).toEqual([15]);
@@ -78,7 +73,7 @@ describe('useCheckersGame', () => {
   it('reset returns to the initial position', () => {
     const { result } = renderHook(() => useCheckersGame(false));
     act(() => {
-      result.current.makeMove(11, 15);
+      result.current.makeMove({ from: 11, to: 15, captures: [], promotes: false, path: [15] });
     });
     act(() => {
       result.current.reset();
@@ -90,7 +85,7 @@ describe('useCheckersGame', () => {
   it('persists to localStorage when persist=true and reloads on next mount', () => {
     const first = renderHook(() => useCheckersGame(true));
     act(() => {
-      first.result.current.makeMove(11, 15);
+      first.result.current.makeMove({ from: 11, to: 15, captures: [], promotes: false, path: [15] });
     });
     first.unmount();
     // Confirms the hook actually persists under the real, documented
@@ -112,7 +107,7 @@ describe('useCheckersGame', () => {
     // safe pattern from day one" in CLAUDE.md.
     const first = renderHook(() => useCheckersGame(true));
     act(() => {
-      first.result.current.makeMove(11, 15);
+      first.result.current.makeMove({ from: 11, to: 15, captures: [], promotes: false, path: [15] });
     });
     first.unmount();
 
@@ -148,16 +143,68 @@ describe('useCheckersGame', () => {
   it('makeMove returns the correct result for every call, not just the first', () => {
     const { result } = renderHook(() => useCheckersGame(false));
     act(() => {
-      expect(result.current.makeMove(11, 15)).toBe(true);
+      expect(result.current.makeMove({ from: 11, to: 15, captures: [], promotes: false, path: [15] })).toBe(true);
     });
     act(() => {
-      expect(result.current.makeMove(24, 20)).toBe(true); // white's known-quiet reply, see Task 8's plan comment
+      // white's known-quiet reply, see Task 8's plan comment
+      expect(result.current.makeMove({ from: 24, to: 20, captures: [], promotes: false, path: [20] })).toBe(true);
     });
     act(() => {
-      expect(result.current.makeMove(11, 99)).toBe(false); // 99 is never a real square target -- illegal
+      // 99 is never a real square target -- illegal
+      expect(result.current.makeMove({ from: 11, to: 99, captures: [], promotes: false, path: [99] })).toBe(false);
     });
     act(() => {
-      expect(result.current.makeMove(9, 13)).toBe(true); // fourth call -- still correct
+      // fourth call -- still correct
+      expect(result.current.makeMove({ from: 9, to: 13, captures: [], promotes: false, path: [13] })).toBe(true);
     });
+  });
+
+  it('makeMove disambiguates two capture chains that share a final square but capture different pieces', () => {
+    // Same real, engine-verified ambiguous position as
+    // lib/checkers/moveDisambiguation.test.ts: black king on 22, white men
+    // on 11, 18, 26, 27, 19. Loaded via localStorage hydration (the hook
+    // has no other way to start from an arbitrary position) -- same
+    // technique the "falls back to a fresh initial game" test above
+    // already uses.
+    function ambiguousPersistedGame() {
+      const board: (Piece | null)[] = new Array(32).fill(null);
+      board[21] = { color: 'b', kind: 'king' }; // 22
+      for (const s of [11, 18, 26, 27, 19]) board[s - 1] = { color: 'w', kind: 'man' };
+      return { board, turn: 'b' as const, lastMove: null, plySinceLastCapture: 0, positionCounts: [] };
+    }
+
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(ambiguousPersistedGame()));
+    const shortRoute = renderHook(() => useCheckersGame(true));
+    act(() => {
+      expect(
+        shortRoute.result.current.makeMove({ from: 22, to: 8, captures: [18, 11], promotes: false, path: [15, 8] }),
+      ).toBe(true);
+    });
+    // Short route captured 18 and 11 -- 26/27/19 are untouched.
+    expect(shortRoute.result.current.state.board[25]).toEqual({ color: 'w', kind: 'man' }); // 26 survives
+    expect(shortRoute.result.current.state.board[26]).toEqual({ color: 'w', kind: 'man' }); // 27 survives
+    expect(shortRoute.result.current.state.board[18]).toEqual({ color: 'w', kind: 'man' }); // 19 survives
+    expect(shortRoute.result.current.state.board[10]).toBeNull(); // 11 captured
+    expect(shortRoute.result.current.state.board[17]).toBeNull(); // 18 captured
+
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(ambiguousPersistedGame()));
+    const longRoute = renderHook(() => useCheckersGame(true));
+    act(() => {
+      expect(
+        longRoute.result.current.makeMove({
+          from: 22,
+          to: 8,
+          captures: [26, 27, 19, 11],
+          promotes: false,
+          path: [31, 24, 15, 8],
+        }),
+      ).toBe(true);
+    });
+    // Long route captured all four white pieces.
+    expect(longRoute.result.current.state.board[25]).toBeNull(); // 26 captured
+    expect(longRoute.result.current.state.board[26]).toBeNull(); // 27 captured
+    expect(longRoute.result.current.state.board[18]).toBeNull(); // 19 captured
+    expect(longRoute.result.current.state.board[10]).toBeNull(); // 11 captured
+    expect(longRoute.result.current.state.board[17]).toEqual({ color: 'w', kind: 'man' }); // 18 survives here
   });
 });
