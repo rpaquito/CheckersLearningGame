@@ -86,29 +86,46 @@ export function useCheckersGame(persist: boolean = true): UseCheckersGameResult 
   // eslint-disable-next-line react-hooks/refs
   gameRef.current = game;
 
-  useEffect(() => {
-    if (!persist) return;
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    try {
-      const parsed: unknown = JSON.parse(raw);
-      if (isValidPersistedGame(parsed)) {
-        gameRef.current = parsed;
-        // One-time hydration from localStorage on mount. SSR-safe: window is
-        // unavailable during the initial render, so this can't be a lazy
-        // useState initializer instead.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setGame(parsed);
-      }
-    } catch {
-      // Corrupted save -- ignore, keep the fresh initial game.
-    }
-  }, [persist]);
+  // Gates the persistence effect below until hydration has actually landed
+  // in a render. Must be React STATE, not a ref: both effects fire in the
+  // same initial flush, closing over that render's values -- a ref flipped
+  // inside the hydration effect would already read `true` by the time the
+  // persistence effect's body ran moments later in that same flush, so it
+  // wouldn't stop the persistence effect from still writing that render's
+  // stale (pre-hydration) `game` closure. State is captured per-render: the
+  // hydration effect's `setGame`/`setHydrated` calls batch into one new
+  // render where `game` and `hydrated` update together, so the persistence
+  // effect's first-ever real execution already sees the hydrated `game` --
+  // it never gets a chance to write the fresh/blank one over a real save.
+  // See CLAUDE.md's "useCheckersGame persistence follows the SSR-hydration-
+  // safe pattern from day one" for the race this closes.
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     if (!persist) return;
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      try {
+        const parsed: unknown = JSON.parse(raw);
+        if (isValidPersistedGame(parsed)) {
+          gameRef.current = parsed;
+          // One-time hydration from localStorage on mount. SSR-safe: window is
+          // unavailable during the initial render, so this can't be a lazy
+          // useState initializer instead.
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setGame(parsed);
+        }
+      } catch {
+        // Corrupted save -- ignore, keep the fresh initial game.
+      }
+    }
+    setHydrated(true);
+  }, [persist]);
+
+  useEffect(() => {
+    if (!persist || !hydrated) return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(game));
-  }, [game, persist]);
+  }, [game, persist, hydrated]);
 
   const makeMove = useCallback((from: Square, to: Square): boolean => {
     const current = gameRef.current;

@@ -438,7 +438,7 @@ here so nobody later assumes deeper authority than exists — same
 "informational, not authoritative" framing the design spec uses for the
 openings trainer's opening names (spec §6).
 
-### `useCheckersGame` persistence follows the SSR-hydration-safe pattern from day one
+### `useCheckersGame` persistence follows the SSR-hydration-safe pattern from day one — and the hydration race is now fixed
 
 Unlike Chess Sensei's `useChessGame` (which the twin project's own
 `CLAUDE.md` documents as having a *known, unfixed* hydration bug),
@@ -448,19 +448,39 @@ source. This was done correctly from the start rather than importing the
 twin project's bug.
 
 A real, non-blocking finding from manual browser testing, independently
-verified by the final reviewer: hydration can still lose a saved game on
-the very first page load after a real move was made, if the persistence
-effect's write — which closes over the pre-hydration `game` value — runs
-after the hydration effect's `setGame(parsed)` call but before the
-resulting re-render. In practice the window is real but narrow: production
-builds (`next build && next start`) were verified to persist correctly
-across reload, and the loss was only reproduced under `next dev`'s React
-Strict Mode double-effect invocation — though the underlying race isn't
-strictly limited to that mode (a tab closed at exactly the wrong
-single-frame window could in principle lose a save even outside Strict
-Mode). Not fixed here; the suggested remedy is gating the persistence
-effect's write on a "hydration has completed" ref so it never fires with a
-pre-hydration closure value.
+verified by the final reviewer during an earlier phase: hydration could
+lose a saved game on the very first page load after a real move was made,
+if the persistence effect's write — which closed over the pre-hydration
+`game` value — ran after the hydration effect's `setGame(parsed)` call but
+before the resulting re-render. In practice the window was real but
+narrow: production builds (`next build && next start`) were verified to
+persist correctly across reload, and the loss was only reproduced under
+`next dev`'s React Strict Mode double-effect invocation — though the
+underlying race wasn't strictly limited to that mode (a tab closed at
+exactly the wrong single-frame window could in principle have lost a save
+even outside Strict Mode).
+
+**Fixed**, in a later phase: a `hydrated` boolean gates the persistence
+effect, and — this is the detail that actually closes the race — it's
+React **state**, not a ref. Both the hydration and persistence effects fire
+in the same initial flush, each closing over that render's values. A ref
+flipped inside the hydration effect would already read `true` by the time
+the persistence effect's body ran moments later in that same flush, so it
+would NOT stop the persistence effect from still writing that render's
+stale (pre-hydration) `game` closure — the bug would survive a naive
+ref-based gate. State is captured per-render instead: the hydration
+effect's `setGame`/`setHydrated` calls batch into one new render where
+`game` and `hydrated` update together, so the persistence effect's
+first-ever real execution already sees the hydrated `game`. It never gets
+a chance to write the fresh/blank one over a real save. Regression-tested
+by spying on `Storage.prototype.setItem` (not the `window.localStorage`
+instance — jsdom's `localStorage` doesn't route method calls through
+instance-own properties, so `vi.spyOn(window.localStorage, 'setItem')`
+silently captures nothing; `Storage.prototype` is the spy target that
+actually works) and asserting every write during a hydrating mount
+reflects the hydrated state, never the fresh initial one — this test
+failed against the old code (first call was the stale `turn: 'b'`) and
+passes against the fix.
 
 ### `makeMove`'s return value is now reliable on every call — and its tie-break is documented, not solved
 

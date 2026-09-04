@@ -1,5 +1,5 @@
 // lib/checkers/useCheckersGame.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useCheckersGame, clearSavedGame, STORAGE_KEY } from './useCheckersGame';
 
@@ -100,6 +100,36 @@ describe('useCheckersGame', () => {
     const second = renderHook(() => useCheckersGame(true));
     expect(second.result.current.state.turn).toBe('w');
     expect(second.result.current.state.board[14]).toEqual({ color: 'b', kind: 'man' });
+  });
+
+  it('never writes the fresh initial game to localStorage while hydrating a real saved game', () => {
+    // Regression test for the hydration race documented in CLAUDE.md: the
+    // persistence effect must never fire with a pre-hydration closure value.
+    // A stale write here (turn: 'b', the fresh starting position) instead of
+    // the real hydrated save (turn: 'w', after 11-15) is exactly how a real
+    // saved game gets silently clobbered if the tab closes at the wrong
+    // moment -- see "useCheckersGame persistence follows the SSR-hydration-
+    // safe pattern from day one" in CLAUDE.md.
+    const first = renderHook(() => useCheckersGame(true));
+    act(() => {
+      first.result.current.makeMove(11, 15);
+    });
+    first.unmount();
+
+    // Spying on the `window.localStorage` instance directly doesn't
+    // intercept calls under jsdom (its Storage instances don't route method
+    // calls through instance-own properties the way vi.spyOn needs) --
+    // Storage.prototype is the spy target that actually observes real calls.
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+    renderHook(() => useCheckersGame(true));
+
+    const writesToStorageKey = setItemSpy.mock.calls.filter(([key]) => key === STORAGE_KEY);
+    expect(writesToStorageKey.length).toBeGreaterThan(0);
+    for (const [, value] of writesToStorageKey) {
+      const written = JSON.parse(value as string);
+      expect(written.turn).toBe('w');
+    }
+    setItemSpy.mockRestore();
   });
 
   it('falls back to a fresh initial game when localStorage holds structurally-invalid JSON', () => {
