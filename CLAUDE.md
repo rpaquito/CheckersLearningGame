@@ -513,7 +513,7 @@ faster and avoids a rare cross-color ambiguity. Small, defensible, but
 worth recording since this file is the living record of what was actually
 built, not the spec.
 
-### Known design constraint for the future board UI: `from`/`to` alone can't always disambiguate a capture chain
+### Known design constraint for the future board UI: `from`/`to` alone can't always disambiguate a capture chain (fixed)
 
 Verified by the final reviewer via brute-force search over king positions
 (rare, needs 3+ available capture routes for the same piece): two distinct
@@ -526,6 +526,16 @@ be resolved when the board UI is designed** — step-by-step landing-square
 input (the way real checkers UIs work) is one natural answer. Flagged here
 as a known, load-bearing constraint for that future work; this plan does
 not attempt to fix it.
+
+**Fixed** in the capture-chain-disambiguation phase: `CheckersMove` gained
+a `path: Square[]` field (see the `` `makeMove`'s return value... `` entry
+above), and `app/jogar/page.tsx` gained a `pendingChoice` state slice that
+activates only when `lib/checkers/moveDisambiguation.ts` proves a clicked
+destination is genuinely ambiguous — the player clicks through the
+distinguishing squares until only one route remains, which then commits
+automatically. Every unambiguous move (the overwhelming majority, every
+normal multi-jump capture included) keeps the exact one-click interaction
+and single-slide animation this entry originally described as unaffected.
 
 ### Spec §2's compact board notation was never implemented
 
