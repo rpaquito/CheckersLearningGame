@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { OpeningPractice } from './OpeningPractice';
 import { OPENINGS } from '@/lib/openings/data';
 import type { Opening } from '@/lib/openings/types';
+import { PieceIcon } from '@/components/CheckersBoard/PieceIcon';
 import { saveSettings, DEFAULT_SETTINGS } from '@/lib/settings/settings';
 
 afterEach(() => {
@@ -114,5 +115,21 @@ describe('OpeningPractice', () => {
     saveSettings({ ...DEFAULT_SETTINGS, language: 'en' });
     render(<OpeningPractice opening={oldFourteenth} />);
     expect(screen.getByText("Your turn: find the line's move.")).toBeInTheDocument();
+  });
+
+  it("renders the board theme from settings, not CheckersBoard's own default", () => {
+    saveSettings({ ...DEFAULT_SETTINGS, boardTheme: 'neon' });
+    const { container } = render(<OpeningPractice opening={oldFourteenth} />);
+    const square1 = container.querySelector('[aria-label="square 1"]') as HTMLElement;
+    expect(square1.style.backgroundImage).toContain('neon-dark-square.webp');
+  });
+
+  it("renders the piece style from settings, not CheckersBoard's own default", () => {
+    saveSettings({ ...DEFAULT_SETTINGS, pieceStyle: 'moderno' });
+    const { container } = render(<OpeningPractice opening={oldFourteenth} />);
+    const { container: modernoReference } = render(<PieceIcon type="man" style="moderno" />);
+    const { container: classicoReference } = render(<PieceIcon type="man" style="classico" />);
+    expect(container.querySelector('svg')?.innerHTML).toBe(modernoReference.querySelector('svg')?.innerHTML);
+    expect(container.querySelector('svg')?.innerHTML).not.toBe(classicoReference.querySelector('svg')?.innerHTML);
   });
 });

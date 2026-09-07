@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { buildBoard, squareAt } from '@/lib/checkers/demoBoards';
 import { InteractiveDemo } from './InteractiveDemo';
+import { PieceIcon } from '@/components/CheckersBoard/PieceIcon';
 import { saveSettings, DEFAULT_SETTINGS } from '@/lib/settings/settings';
 
 const DEMO_BOARD = buildBoard([{ row: 3, col: 2, color: 'b', kind: 'man' }]);
@@ -77,5 +78,21 @@ describe('InteractiveDemo', () => {
     saveSettings({ ...DEFAULT_SETTINGS, language: 'en' });
     renderDemo();
     expect(screen.getByRole('button', { name: 'Reset' })).toBeInTheDocument();
+  });
+
+  it('renders the board theme from settings, not boardTheme\'s own default', () => {
+    saveSettings({ ...DEFAULT_SETTINGS, boardTheme: 'neon' });
+    const { container } = renderDemo();
+    const square1 = container.querySelector('[aria-label="square 1"]') as HTMLElement;
+    expect(square1.style.backgroundImage).toContain('neon-dark-square.webp');
+  });
+
+  it('renders the piece style from settings, not classico', () => {
+    saveSettings({ ...DEFAULT_SETTINGS, pieceStyle: 'moderno' });
+    const { container } = renderDemo();
+    const { container: modernoReference } = render(<PieceIcon type="man" style="moderno" />);
+    const { container: classicoReference } = render(<PieceIcon type="man" style="classico" />);
+    expect(container.querySelector('svg')?.innerHTML).toBe(modernoReference.querySelector('svg')?.innerHTML);
+    expect(container.querySelector('svg')?.innerHTML).not.toBe(classicoReference.querySelector('svg')?.innerHTML);
   });
 });

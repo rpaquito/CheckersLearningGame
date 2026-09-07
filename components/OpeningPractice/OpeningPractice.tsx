@@ -10,12 +10,14 @@ import { replayLine } from '@/lib/openings/replayLine';
 import type { Square } from '@/lib/checkers/types';
 import type { Opening } from '@/lib/openings/types';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useSettings } from '@/lib/settings/useSettings';
 
 const START_BOARD = createInitialBoard();
 const OPPONENT_MOVE_DELAY_MS = 500;
 
 export function OpeningPractice({ opening }: { opening: Opening }) {
   const { t, locale } = useTranslation();
+  const { settings } = useSettings();
   const tabLines = useMemo(() => opening.lines.map((line) => ({ name: line.name[locale] })), [opening, locale]);
   const replayedLines = useMemo(() => opening.lines.map((line) => replayLine(line)), [opening]);
 
@@ -94,6 +96,8 @@ export function OpeningPractice({ opening }: { opening: Opening }) {
             lastMove={lastMove}
             suggestedMove={wrongAttempt && expected ? expected.move : null}
             interactive={isUserTurn}
+            boardTheme={settings.boardTheme}
+            pieceStyle={settings.pieceStyle}
             onSquareClick={handleSquareClick}
           />
 

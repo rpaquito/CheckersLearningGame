@@ -8,6 +8,7 @@ import { LineTabs } from '@/components/LineTabs/LineTabs';
 import { replayLine, type ReplayedMove } from '@/lib/openings/replayLine';
 import type { Opening } from '@/lib/openings/types';
 import { useTranslation } from '@/lib/i18n/useTranslation';
+import { useSettings } from '@/lib/settings/useSettings';
 
 const START_BOARD = createInitialBoard();
 
@@ -20,6 +21,7 @@ function moveLabel(stepIndex: number): string {
 
 export function OpeningStudy({ opening }: { opening: Opening }) {
   const { t, locale } = useTranslation();
+  const { settings } = useSettings();
   const tabLines = useMemo(() => opening.lines.map((line) => ({ name: line.name[locale] })), [opening, locale]);
   const replayedLines = useMemo(() => opening.lines.map((line) => replayLine(line)), [opening]);
   const [lineIndex, setLineIndex] = useState(0);
@@ -60,6 +62,8 @@ export function OpeningStudy({ opening }: { opening: Opening }) {
             mandatoryCaptureSquares={[]}
             lastMove={lastMove}
             interactive={false}
+            boardTheme={settings.boardTheme}
+            pieceStyle={settings.pieceStyle}
           />
 
           <div className="flex items-center gap-3">

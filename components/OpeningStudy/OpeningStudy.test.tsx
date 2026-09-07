@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { OpeningStudy } from './OpeningStudy';
 import { OPENINGS } from '@/lib/openings/data';
+import { PieceIcon } from '@/components/CheckersBoard/PieceIcon';
 import { saveSettings, DEFAULT_SETTINGS } from '@/lib/settings/settings';
 
 const oldFourteenth = OPENINGS.find((o) => o.id === 'old-fourteenth')!;
@@ -70,5 +71,21 @@ describe('OpeningStudy', () => {
     expect(screen.getByText(/Starting position/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
+  });
+
+  it("renders the board theme from settings, not CheckersBoard's own default", () => {
+    saveSettings({ ...DEFAULT_SETTINGS, boardTheme: 'neon' });
+    const { container } = render(<OpeningStudy opening={oldFourteenth} />);
+    const square1 = container.querySelector('[aria-label="square 1"]') as HTMLElement;
+    expect(square1.style.backgroundImage).toContain('neon-dark-square.webp');
+  });
+
+  it("renders the piece style from settings, not CheckersBoard's own default", () => {
+    saveSettings({ ...DEFAULT_SETTINGS, pieceStyle: 'moderno' });
+    const { container } = render(<OpeningStudy opening={oldFourteenth} />);
+    const { container: modernoReference } = render(<PieceIcon type="man" style="moderno" />);
+    const { container: classicoReference } = render(<PieceIcon type="man" style="classico" />);
+    expect(container.querySelector('svg')?.innerHTML).toBe(modernoReference.querySelector('svg')?.innerHTML);
+    expect(container.querySelector('svg')?.innerHTML).not.toBe(classicoReference.querySelector('svg')?.innerHTML);
   });
 });
