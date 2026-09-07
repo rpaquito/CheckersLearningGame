@@ -655,6 +655,29 @@ structured (a thin dispatcher over a style module) so Phase 5's
 "moderno"/"anime" styles and the textured `boardTheme` system slot in later
 without restructuring — see the design spec §4/§8 for the full plan.
 
+### The king mark must use a fixed color, never `currentColor` -- it renders on top of a same-colored disc
+
+A real bug found by manual play (2026-09-07), not just a design gap: all three piece styles
+(`classico.tsx`/`moderno.tsx`/`anime.tsx`) drew their king crown (and anime's sparkle) with
+`fill="currentColor"`. The disc underneath is *also* `currentColor` (`CheckersBoard.tsx` sets
+it via a `text-stone-900`/`text-stone-50` class per player color, and `PieceIcon`'s `<svg>`
+inherits it) -- so the crown was a same-color shape drawn on a same-color disc, at
+`opacity="0.9"`. Same color on same color is visually imperceptible regardless of opacity: a
+piece that had just promoted showed no real, visible mark that it was now a king able to move
+in both directions. This was true in every piece style, on every board theme, since day one --
+the crown `<polygon>` was always present in the DOM/SVG output (so a naive "does a crown
+element exist" test passed), just not perceptible in the rendered piece.
+
+Fixed by giving the king mark (crown in all three styles, plus anime's sparkle) an explicit,
+fixed `KING_MARK_COLOR` (`#FFD600`, the app's own gold accent token) instead of inheriting
+`currentColor`, with a `KING_MARK_STROKE` (`#1A0B33`, the ink token) outline so it stays crisp
+against light pieces too. Each piece-style file keeps its own copy of these two constants
+(matching the existing per-file `CROWN_POINTS`/`RIM_POINTS` convention -- these files have
+never shared a common constants module). `PieceIcon.test.tsx` gained a regression test
+asserting the king-specific shapes (computed as the polygon set present for `type="king"` but
+absent for `type="man"`, since moderno/anime's own disc shape is *also* a `<polygon>` shared
+with the man rendering) never have `fill="currentColor"` again.
+
 ### The AI engine is a from-scratch minimax, not a vendored binary
 
 Unlike Chess Sensei's vendored Stockfish, `lib/checkers/search.ts` is a
@@ -1146,22 +1169,23 @@ wiped before the test runs, which can be surprising. When writing a test that
 depends on persisted settings, seed them inside a `beforeEach` hook so they're
 applied after the global clear, or inside the individual `it` block.
 
-### `DEFAULT_SETTINGS.pieceStyle` is `'anime'`; `CheckersBoard`'s default is `'classico'` -- and both are reachable in production
+### `DEFAULT_SETTINGS.pieceStyle` is `'anime'`; `CheckersBoard`'s own `'classico'`/`'nebulosa'` defaults are now unreachable in production (historical gap, closed)
 
-`lib/settings/settings.ts`'s `DEFAULT_SETTINGS.pieceStyle` defaults to `'anime'`,
-reflecting the Phase 5 visual redesign. `components/CheckersBoard/CheckersBoard.tsx`'s
-own `pieceStyle` prop still defaults to `'classico'` when the prop is omitted. This
-divergence was previously dormant (nothing wired real settings into the board), but as
-of the ui-parity-and-game-completion phase (see "UI parity and game completion" below)
-`/jogar` now explicitly passes `boardTheme={settings.boardTheme}`/
-`pieceStyle={settings.pieceStyle}` into `CheckersBoard`, so the `'anime'` default is what
-a player actually sees there. The `'classico'`/`'nebulosa'` fallback did NOT become
-unreachable, though: `components/InteractiveDemo/InteractiveDemo.tsx`,
-`components/OpeningStudy/OpeningStudy.tsx`, and `components/OpeningPractice/
-OpeningPractice.tsx` all still omit these props deliberately (per that phase's explicit
-scope decision to wire settings into `/jogar` only), so tutorial (`/aprender`) and
-openings-trainer boards genuinely still render with `CheckersBoard`'s own `'classico'`/
-`'nebulosa'` defaults in production today -- not just in tests.
+**This entry is now historical.** `lib/settings/settings.ts`'s `DEFAULT_SETTINGS.pieceStyle`
+defaults to `'anime'` (Phase 5 visual redesign); `CheckersBoard.tsx`'s own `pieceStyle`/
+`boardTheme` props still default to `'classico'`/`'nebulosa'` when omitted. The
+ui-parity-and-game-completion phase wired real settings into `/jogar` only, leaving
+`InteractiveDemo`/`OpeningStudy`/`OpeningPractice` (tutorial and openings-trainer boards)
+on `CheckersBoard`'s own defaults as a deliberate, documented scope boundary — see that
+phase's own entry below for the "previously-invisible piece-style inconsistency is now
+visible" note this used to point to.
+
+A follow-up phase (2026-09-07) closed that gap: all three components now call
+`useSettings()` and pass `boardTheme={settings.boardTheme}`/`pieceStyle={settings.pieceStyle}`
+through to their own `CheckersBoard`, the same pattern `/jogar` already used. Every board in
+the app now reflects the player's real settings — `CheckersBoard`'s own `'classico'`/
+`'nebulosa'` defaults are exercised only by tests that omit the props on purpose (e.g.
+`CheckersBoard.test.tsx`'s own theming tests), never by a real page anymore.
 
 ### Demo boards use row/col coordinates, not hand-typed square numbers
 
@@ -1540,14 +1564,15 @@ exist yet. And "`DEFAULT_SETTINGS.pieceStyle` is `'anime'`; `CheckersBoard`'s de
 `'classico'`" no longer describes a dormant mismatch -- see its own updated text for what's
 actually reachable in production now.
 
-**A previously-invisible piece-style inconsistency is now visible, by design.** Since
-`DEFAULT_SETTINGS.pieceStyle` is `'anime'` but the tutorial (`/aprender`) and openings-trainer
-boards still render `CheckersBoard`'s own `'classico'` default (see that entry above), a player
-who never visits `/opcoes` now sees anime-style pieces in `/jogar` but classico-style pieces in
-`/aprender`'s demos and the openings trainer. This is a deliberate, spec-sanctioned scope
-boundary from this phase (settings-wiring was scoped to `/jogar` only), not a bug -- but it's
-newly visible: previously everything rendered `'classico'`, since nothing read real settings
-anywhere.
+**A previously-invisible piece-style inconsistency was made visible by this phase, then closed
+by a later one.** Since `DEFAULT_SETTINGS.pieceStyle` is `'anime'` but the tutorial
+(`/aprender`) and openings-trainer boards still rendered `CheckersBoard`'s own `'classico'`
+default, a player who never visited `/opcoes` saw anime-style pieces in `/jogar` but
+classico-style pieces in `/aprender`'s demos and the openings trainer. That was a deliberate,
+spec-sanctioned scope boundary from this phase (settings-wiring was scoped to `/jogar` only),
+not a bug — but a follow-up phase (2026-09-07, see the updated "`DEFAULT_SETTINGS.pieceStyle`"
+entry above) wired `useSettings()` into `InteractiveDemo`/`OpeningStudy`/`OpeningPractice` too,
+so every board in the app now reflects the player's real settings consistently.
 
 Verified via the full suite: `tsc --noEmit` (clean), `npm run lint` (clean), `npm run test`
 (all test files pass, including `CheckersBoard.test.tsx`, `ConfirmModal.test.tsx`,
