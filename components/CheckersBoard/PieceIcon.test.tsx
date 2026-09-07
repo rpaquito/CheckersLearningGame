@@ -14,6 +14,32 @@ describe('PieceIcon', () => {
     expect(container.querySelector('polygon')).not.toBeNull();
   });
 
+  it('renders the king mark in a fixed color, not the piece\'s own currentColor, for every style', () => {
+    // The piece disc itself is drawn in `currentColor` (set by the caller
+    // via a text-* class) so it can render either player's color -- but
+    // the king mark must stand out from whatever that color is, or it's
+    // invisible when drawn on top of a same-colored disc at high opacity
+    // (the actual bug reported: promoting to king showed no visible mark).
+    // moderno/anime's own disc shape is *also* a <polygon> shared with the
+    // man rendering, so only the polygon(s) unique to the king rendering
+    // (the actual mark) are checked here -- not every polygon on the icon.
+    for (const style of ['classico', 'moderno', 'anime'] as const) {
+      const man = render(<PieceIcon type="man" style={style} />);
+      const manPolygons = new Set([...man.container.querySelectorAll('polygon')].map((p) => p.getAttribute('points')));
+      man.unmount();
+
+      const { container } = render(<PieceIcon type="king" style={style} />);
+      const markShapes = [...container.querySelectorAll('polygon')].filter(
+        (p) => !manPolygons.has(p.getAttribute('points')),
+      );
+      expect(markShapes.length).toBeGreaterThan(0);
+      markShapes.forEach((shape) => {
+        expect(shape.getAttribute('fill')).not.toBe('currentColor');
+        expect(shape.getAttribute('fill')).not.toBeNull();
+      });
+    }
+  });
+
   it('defaults to the classico style', () => {
     const { container: withDefault } = render(<PieceIcon type="king" />);
     const { container: withExplicit } = render(<PieceIcon type="king" style="classico" />);

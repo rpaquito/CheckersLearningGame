@@ -11,14 +11,19 @@ const JAGGED_DISC_POINTS =
 const CROWN_POINTS = '30,44 38,26 50,38 62,26 70,44 64,54 36,54';
 const SPARKLE_POINTS = '50,20 53,28 61,30 53,32 50,40 47,32 39,30 47,28';
 
+// Fixed gold accent, not `currentColor` -- see classico.tsx's own comment
+// on why the king mark can't inherit the disc's (player-dependent) color.
+const KING_MARK_COLOR = '#FFD600';
+const KING_MARK_STROKE = '#1A0B33';
+
 export function PieceShape({ type }: { type: PieceKind }): ReactElement {
   return (
     <>
       <polygon points={JAGGED_DISC_POINTS} />
       {type === 'king' ? (
         <>
-          <polygon points={CROWN_POINTS} fill="currentColor" opacity="0.9" />
-          <polygon points={SPARKLE_POINTS} fill="currentColor" />
+          <polygon points={CROWN_POINTS} fill={KING_MARK_COLOR} stroke={KING_MARK_STROKE} strokeWidth="1.5" />
+          <polygon points={SPARKLE_POINTS} fill={KING_MARK_COLOR} />
         </>
       ) : (
         <circle cx="50" cy="50" r="20" fill="none" stroke="currentColor" strokeOpacity="0.35" strokeWidth="3" />
